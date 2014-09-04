@@ -1,0 +1,13 @@
+{
+    "port": "3000",
+    "apps": [{
+        "name": "App1",
+        "gcm_api_key": "AIzaSyDOSDBbASycTZ0lRkIfmpIwXkUiddVIg_c"
+    }, {
+        "name": "App2",
+        "gcm_api_key": "AIzaSyDOSDBbASycTZ0lRkIfmpIwXkUiddVIg_c"
+    }, {
+        "name": "App3",
+        "gcm_api_key": "AIzaSyDOSDBbASycTZ0lRkIfmpIwXkUiddVIg_c"
+    }]
+}

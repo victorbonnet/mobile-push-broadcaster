@@ -21,3 +21,15 @@ _testmain.go
 
 *.exe
 *.test
+bin/
+*.db
+.DS_Store
+src/github.com/vbonnet/mobile-push-broadcaster/main
+src/github.com/alexjlockwood/gcm/
+src/github.com/anachronistic/apns/
+src/github.com/codegangsta/inject/
+src/github.com/codegangsta/martini/
+src/github.com/go-martini/martini/
+src/github.com/gorilla/websocket/
+src/github.com/martini-contrib/render/
+src/github.com/toml-lang/toml/
