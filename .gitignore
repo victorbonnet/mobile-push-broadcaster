@@ -21,7 +21,7 @@ _testmain.go
 
 *.exe
 *.test
-bin/
+bin/*
 *.db
 .DS_Store
 src/github.com/vbonnet/mobile-push-broadcaster/main

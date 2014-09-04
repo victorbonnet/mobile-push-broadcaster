@@ -1,6 +1,16 @@
 #!/bin/bash
 
 export GOPATH="`pwd`"
+
+go get github.com/alexjlockwood/gcm/
+go get github.com/anachronistic/apns/
+go get github.com/codegangsta/inject/
+go get github.com/codegangsta/martini/
+go get github.com/go-martini/martini/
+go get github.com/gorilla/websocket
+go get github.com/martini-contrib/render/
+go get github.com/toml-lang/toml/
+
 rm -Rf bin/*
 echo "install web_logs"
 go install github.com/vbonnet/mobile-push-broadcaster/web_logs
