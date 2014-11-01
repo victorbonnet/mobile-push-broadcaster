@@ -226,7 +226,7 @@
   Polymer('gcm-logs-panel', {
     ready: function() {
       polym_gcm = this.$;
-      var c=new WebSocket('ws://{[{ .Server }]}:3000/sock_gcm');
+      var c=new WebSocket('ws://{[{ .Server }]}:{[{ .Port }]}/sock_gcm');
       c.onopen = function(){
         c.onmessage = function(response){
           console.log(response.data);
@@ -278,7 +278,7 @@
   Polymer('apns-logs-panel', {
     ready: function() {
       polym_apns = this.$;
-      var c=new WebSocket('ws://{[{ .Server }]}:3000/sock_apns');
+      var c=new WebSocket('ws://{[{ .Server }]}:{[{ .Port }]}/sock_apns');
       c.onopen = function(){
         c.onmessage = function(response){
           console.log(response.data);

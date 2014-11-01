@@ -20,6 +20,7 @@ import (
 
 type WebPageInfo struct {
 	Server 		string
+	Port 		int
 	AppInfos	[]AppInfo
 }
 
@@ -123,6 +124,7 @@ func GetPageInfo() WebPageInfo {
 		appInfos = append(appInfos, appInfo)
 	}
 	webPageInfo.Server = settings.SERVER
+	webPageInfo.Port = settings.PORT
 	webPageInfo.AppInfos = appInfos
 	return webPageInfo
 }
