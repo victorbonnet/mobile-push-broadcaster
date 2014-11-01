@@ -218,7 +218,7 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int)
 		log.Println(string(res))
 		web_logs.GCMLogs("OK: " + string(res))
 
-		if resp.Failure > 0 {
+		if resp.Failure > 0 || resp.CanonicalIDs > 0 {
 			var app = data["app"].(string)
 			for index, el := range resp.Results {
 				if el.Error != "" && el.RegistrationID == "" {
