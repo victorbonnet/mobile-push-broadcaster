@@ -170,20 +170,22 @@ func SendGCM(params map[string]interface{}) {
 	log.Println(params)
 	tokens := dao.GetGCMTokens(params["app"].(string))
 
+	var reqNumber int = 0;
 	for i := 0; i < len(tokens); i = i + MAX_GCM_TOKENS {
 		max := i + MAX_GCM_TOKENS
 		if max >= len(tokens) {
 			max = len(tokens)
 		}
 		block := strconv.Itoa(i) + " - " + strconv.Itoa(max-1)
-		web_logs.GCMLogs("Send block: " + block)
+		reqNumber = reqNumber + 1
+		web_logs.GCMLogs("Send request " + strconv.Itoa(reqNumber) + " to the GCM server")
 		log.Println("Send block: " + block)
-		go SendRequestToGCM(params, tokens[i:max], block)
+		go SendRequestToGCM(params, tokens[i:max], reqNumber)
 	}
 
 	web_logs.GCMLogs("Notifications sent to " + strconv.Itoa(len(tokens)) + " Android devices")
 }
-func SendRequestToGCM(data map[string]interface{}, toks []string, block string) {
+func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int) {
 	tokens := make([]string, len(toks))
 	copy(tokens, toks)
 
@@ -222,7 +224,7 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, block string) 
 
 	t2 := time.Now()
 	var duration time.Duration = t2.Sub(t1)
-	web_logs.GCMLogs("Notifications block " + block + " sent to in " + duration.String())
+	web_logs.GCMLogs("Request n " + strconv.Itoa(reqNumber) + " sent to in " + duration.String())
 }
 
 func SendApns(title string, message string) {
