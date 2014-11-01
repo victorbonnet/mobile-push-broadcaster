@@ -1,8 +1,10 @@
 {
+    "server": "localhost",
     "port": "3000",
-    "apps": [{
+    "apps": [
+    {
         "name": "App1",
-        "gcm_api_key": "AIzaSyDOSDBbASycTZ0lRkIfmpIwXkUiddVIg_c",
+        "gcm_api_key": "KEY",
         "fields": [
             {
                 "name": "title",
@@ -19,7 +21,7 @@
         ]
     }, {
         "name": "App2",
-        "gcm_api_key": "AIzaSyDOSDBbASycTZ0lRkIfmpIwXkUiddVIg_c",
+        "gcm_api_key": "KEY",
         "fields": [
             {
                 "name": "title",
@@ -28,7 +30,7 @@
         ]
     }, {
         "name": "App3",
-        "gcm_api_key": "AIzaSyDOSDBbASycTZ0lRkIfmpIwXkUiddVIg_c",
+        "gcm_api_key": "KEY",
         "fields": [
             {
                 "name": "title",

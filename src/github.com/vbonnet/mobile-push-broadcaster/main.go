@@ -18,6 +18,11 @@ import (
 	"time"
 )
 
+type WebPageInfo struct {
+	Server 		string
+	AppInfos	[]AppInfo
+}
+
 type AppInfo struct {
 	Name           		string
 	AndroidDevices 		int
@@ -37,6 +42,7 @@ type AppSettings struct {
 }
 
 var settings struct {
+	SERVER  string `json:"server"`
 	PORT 	string `json:"port"`
 	Apps 	[]AppSettings `json:"apps"`
 }
@@ -109,17 +115,20 @@ func GetAppConfig(app string) (AppSettings, error) {
 	}
 	return AppSettings{}, errors.New("No app with the name: " + app)
 }
-func GetAppsInfo() []AppInfo {
-	var res []AppInfo
+func GetPageInfo() WebPageInfo {
+	var webPageInfo WebPageInfo;
+	var appInfos []AppInfo
 	for _, element := range settings.Apps {
 		appInfo := AppInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), element.Fields}
-		res = append(res, appInfo)
+		appInfos = append(appInfos, appInfo)
 	}
-	return res
+	webPageInfo.Server = settings.SERVER
+	webPageInfo.AppInfos = appInfos
+	return webPageInfo
 }
 
 func Index(render render.Render) {
-	render.HTML(200, "broadcaster", GetAppsInfo())
+	render.HTML(200, "broadcaster", GetPageInfo())
 }
 
 func Broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {

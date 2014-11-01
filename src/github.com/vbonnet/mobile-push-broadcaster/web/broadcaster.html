@@ -19,9 +19,6 @@
   <link rel="import" href="./components/paper-checkbox/paper-checkbox.html">
   <link rel="import" href="./components/core-ajax/core-ajax.html">
 
-	<link rel="import" href="gcm-logs-panel.html">
-	<link rel="import" href="apns-logs-panel.html">
-
 	<style type="text/css">
 	html, body {
 		height: 100%;
@@ -102,13 +99,13 @@
       <div layout vertical>
       	<form id="send_form">
 	        <paper-radio-group id="apps">
-	        {[{ range . }]}          
+	        {[{ range .AppInfos }]}          
 	          <paper-radio-button on-tap="{{showAppDetails}}" name="{[{ .Name }]}" id="{[{ .Name }]}" label="{[{ .Name }]}"></paper-radio-button>
             <span id="app_info">Android: {[{ .AndroidDevices }]},  iOS: {[{ .IOSDevices }]}</span><br/>
 	        {[{ end }]}
 	        </paper-radio-group>
 
-          {[{ range . }]}     
+          {[{ range .AppInfos }]}     
           <div id="app-{[{ .Name }]}" class="app-details" style="display: none; margin: 10px;">
             <div layout horizontal>
               <div><h4 style="color: #0000FF;">{[{ .Name }]}</h4></div>
@@ -186,6 +183,110 @@
     }, 
     ajaxResponse: function(event, detail, sender) {
       
+    }
+  });
+  </script>
+</polymer-element>
+
+<polymer-element name="gcm-logs-panel">
+  <template>
+    <style>
+    :host {
+      display: block;
+      position: relative;
+      border-style: solid;
+      border-color: #D0F5A9;
+      border-width: 1px;
+      padding: 20px;
+      font-size: 1.2rem;
+      font-weight: 300;
+      margin: 10px auto;
+    }
+    .card-header h1 {
+      margin: 10px;
+      font-size: 1.8rem;
+      font-weight: 300;
+    }
+    #panel { 
+      word-wrap: break-word; 
+    }
+    li { 
+      font-size: 14px;
+      color: #777777;
+    }
+    </style>
+    <div class="card-header" layout horizontal>
+      <h1>GCM</h1>
+    </div>
+    <content id="panel">
+      <ul id="gcm_messages"></ul>
+    </content>
+  </template>
+  <script>
+  Polymer('gcm-logs-panel', {
+    ready: function() {
+      polym_gcm = this.$;
+      var c=new WebSocket('ws://{[{ .Server }]}:3000/sock_gcm');
+      c.onopen = function(){
+        c.onmessage = function(response){
+          console.log(response.data);
+          var li = document.createElement("li");
+          li.textContent = response.data;
+          polym_gcm.gcm_messages.appendChild(li);
+        };
+      }
+    }
+  });
+  </script>
+</polymer-element>
+
+<polymer-element name="apns-logs-panel">
+  <template>
+    <style>
+    :host {
+      display: block;
+      position: relative;
+      border-style: solid;
+      border-color: #D0F5A9;
+      border-width: 1px;
+      padding: 20px;
+      font-size: 1.2rem;
+      font-weight: 300;
+      margin: 10px auto;
+    }
+    .card-header h1 {
+      margin: 10px;
+      font-size: 1.8rem;
+      font-weight: 300;
+    }
+    #panel_apns { 
+      word-wrap: break-word; 
+    }
+    #apns_messages li { 
+      font-size: 14px;
+      color: #777777;
+    }
+    </style>
+    <div class="card-header" layout horizontal>
+      <h1>APNS</h1>
+    </div>
+    <content id="panel_apns">
+      <ul id="apns_messages"></ul>
+    </content>
+  </template>
+  <script>
+  Polymer('apns-logs-panel', {
+    ready: function() {
+      polym_apns = this.$;
+      var c=new WebSocket('ws://{[{ .Server }]}:3000/sock_apns');
+      c.onopen = function(){
+        c.onmessage = function(response){
+          console.log(response.data);
+          var li = document.createElement("li");
+          li.textContent = response.data;
+          polym_apns.apns_messages.appendChild(li);
+        };
+      }
     }
   });
   </script>
