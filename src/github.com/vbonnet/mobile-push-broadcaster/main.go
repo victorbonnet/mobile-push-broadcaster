@@ -236,7 +236,7 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int)
 
 	t2 := time.Now()
 	var duration time.Duration = t2.Sub(t1)
-	web_logs.GCMLogs("Request " + strconv.Itoa(reqNumber) + " sent to " + strconv.Itoa(len(toks)) + " in " + duration.String())
+	web_logs.GCMLogs("Request " + strconv.Itoa(reqNumber) + " sent to " + strconv.Itoa(len(toks)) + " devices in " + duration.String())
 }
 
 func SendApns(title string, message string) {
