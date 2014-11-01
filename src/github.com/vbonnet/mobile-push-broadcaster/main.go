@@ -34,6 +34,7 @@ type AppInfo struct {
 type Field struct {
 	Name      	string `json:"name"`
 	Label      	string `json:"label"`
+	Tips      	string `json:"tips"`
 }
 
 type AppSettings struct {
@@ -235,7 +236,7 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int)
 
 	t2 := time.Now()
 	var duration time.Duration = t2.Sub(t1)
-	web_logs.GCMLogs("Request n " + strconv.Itoa(reqNumber) + " sent to in " + duration.String())
+	web_logs.GCMLogs("Request " + strconv.Itoa(reqNumber) + " sent to in " + duration.String())
 }
 
 func SendApns(title string, message string) {

@@ -12,7 +12,8 @@
             },
             {
                 "name": "message",
-                "label": "Message"
+                "label": "Message",
+                "tips": "This field is important"
             },
             {
                 "name": "action",
