@@ -6,6 +6,7 @@
 	<meta name="viewport" 
 	content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
 	<script src="./components/platform/platform.js"></script>
+  <script src="./components/web-animations-js/web-animations.js"></script> 
 
 	<link rel="import" href="./components/font-roboto/roboto.html">
 	<link href="./components/core-icons/core-icons.html" rel="import">
@@ -96,27 +97,35 @@
     </style>
     <div class="card-header" layout horizontal>
       <div><h1>Send</h1></div>
-      <div flex></div>
-      <div>
-        <paper-fab icon="arrow-forward" on-tap="{{sendAction}}" id="send_button"></paper-fab>
-      </div>
     </div>
     <content>
       <div layout vertical>
       	<form id="send_form">
-      		<p>
 	        <paper-radio-group id="apps">
-	        {[{ range . }]}
-	          <paper-radio-button name="{[{ .Name }]}" label="{[{ .Name }]}"><span id="app_info">Android: {[{ .AndroidDevices }]},  iOS: {[{ .IOSDevices }]}</span></paper-radio-button>
-	          <br/>
+	        {[{ range . }]}          
+	          <paper-radio-button on-tap="{{showAppDetails}}" name="{[{ .Name }]}" id="{[{ .Name }]}" label="{[{ .Name }]}"></paper-radio-button>
+            <span id="app_info">Android: {[{ .AndroidDevices }]},  iOS: {[{ .IOSDevices }]}</span><br/>
 	        {[{ end }]}
 	        </paper-radio-group>
-	        </p>
-	        <paper-input floatingLabel label="Title" id="title" value="{{title}}"></paper-input><br/>
-	        <paper-input floatingLabel label="Message" id="message" value="{{message}}"></paper-input><br/>
+
+          {[{ range . }]}     
+          <div id="app-{[{ .Name }]}" class="app-details" style="display: none; margin: 10px;">
+            <div layout horizontal>
+              <div><h4 style="color: #0000FF;">{[{ .Name }]}</h4></div>
+              <div flex></div>
+              <div>
+                <paper-fab icon="arrow-forward" on-tap="{{sendAction}}" id="send_button"></paper-fab>
+              </div>
+            </div>   
+            
+            {[{ range .Fields }]}
+              <paper-input floatingLabel label="{[{ .Label }]}" id="{[{ .Name }]}" name="{[{ .Name }]}" class="field"></paper-input><br/>
+            {[{ end }]}
+          </div>
+          {[{ end }]}
 
 	        <br/>
-	        <div layout horizontal>
+	        <div layout horizontal style="margin-top: 15px;">
 		        <paper-checkbox name="GCM" id="GCM" label="GCM" flex checked></paper-checkbox>
 		        <paper-checkbox name="APNS" id="APNS" label="APNS" flex></paper-checkbox>
 		        <paper-checkbox name="APNSSandbox" id="APNSSandbox" label="APNS Sandbox"></paper-checkbox>
@@ -133,23 +142,46 @@
   <script>
   Polymer('send-panel', {
     sent: false,
+    showAppDetails: function(event, detail, sender) {
+      sender.parentNode.style.display = "none";
+      var form = sender.parentNode.parentNode;
+      var appDetailsId = "app-" + sender.id; 
+      var elements = new Array();
+      elements = form.getElementsByClassName('app-details');
+      for(var i = 0; i < elements.length; i++){
+        if (elements[i].id === appDetailsId) {
+          // var player = document.timeline.play(new Animation(elements[i], [{"opacity": "0.1"}, {"opacity": "1.0"}], 500));
+          elements[i].style.display = "block";
+        } else {
+          elements[i].style.display = "none";
+        }
+      }
+    },
     sendAction: function(event, detail, sender) {
-      if (this.sent == false && this.$.title.value != "" && this.$.message.value != "") {
+      if (!this.sent) {
         this.sent = true;
 
-        this.$.broadcast.params = '{"app":"' +  this.$.apps.selected 
-        	+ '","title":"' +  this.$.title.value 
-        	+ '","message":"' +  this.$.message.value 
-        	+ '","GCM":"' +  this.$.GCM.checked 
-        	+ '","APNS":"' +  this.$.APNS.checked 
-        	+ '","APNSSandbox":"' +  this.$.APNSSandbox.checked 
-        	+ '"}'
+        var app = this.$.apps.selected;
+        var form = sender.parentNode.parentNode.parentNode.parentNode;
+        var json = '{'
+        json += '"app":"' + app + '",';
+        json += '"GCM":' + this.$.GCM.checked  + ',';
+        json += '"APNS":' + this.$.APNS.checked  + ',';
+        json += '"APNSSandbox":' + this.$.APNSSandbox.checked  + ',';
 
+        elements = form.getElementsByClassName('field');
+        for(var i = 0; i < elements.length; i++){
+          if (elements[i].parentNode.id == "app-"+app) {
+            json += '"' + elements[i].id + '":"' + elements[i].value + '",';
+          }
+        }
+        json = json.substring(0, json.length - 1);
+        json += '}';
+        
+        this.$.broadcast.params = json;
         this.$.broadcast.go();
         sender.icon = "check";
-        sender.className = "sent";
-        this.$.title.disabled = true;
-        this.$.message.disabled = true;
+
       }
     }, 
     ajaxResponse: function(event, detail, sender) {

@@ -19,19 +19,26 @@ import (
 )
 
 type AppInfo struct {
-	Name           string
-	AndroidDevices int
-	IOSDevices     int
+	Name           		string
+	AndroidDevices 		int
+	IOSDevices     		int
+	Fields 				[]Field
+}
+
+type Field struct {
+	Name      	string `json:"name"`
+	Label      	string `json:"label"`
 }
 
 type AppSettings struct {
-	Name      string `json:"name"`
-	GcmApiKey string `json:"gcm_api_key"`
+	Name      	string `json:"name"`
+	GcmApiKey 	string `json:"gcm_api_key"`
+	Fields 		[]Field  `json:"fields"`
 }
 
 var settings struct {
-	PORT string        `json:"port"`
-	Apps []AppSettings `json:"apps"`
+	PORT 	string `json:"port"`
+	Apps 	[]AppSettings `json:"apps"`
 }
 
 const MAX_GCM_TOKENS = 1000
@@ -105,7 +112,7 @@ func GetAppConfig(app string) (AppSettings, error) {
 func GetAppsInfo() []AppInfo {
 	var res []AppInfo
 	for _, element := range settings.Apps {
-		appInfo := AppInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name)}
+		appInfo := AppInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), element.Fields}
 		res = append(res, appInfo)
 	}
 	return res
@@ -116,19 +123,22 @@ func Index(render render.Render) {
 }
 
 func Broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {
-	GCM := r.URL.Query().Get("GCM")
-	APNS := r.URL.Query().Get("APNS")
-	// APNSSandbox := r.URL.Query().Get("APNSSandbox")
-	app := r.URL.Query().Get("app")
-	title := r.URL.Query().Get("title")
-	message := r.URL.Query().Get("message")
+	var params = make(map[string]interface{})
+	for k, v := range r.URL.Query() {
+        params[k] = v[0]
+    } 
 
-	if GCM == "true" {
-		go SendGCM(app, title, message)
+    if params["app"] == nil {
+    	log.Println("app is not defined")
+    	return
+    }
+    
+	if params["GCM"] == "true" {
+		go SendGCM(params)
 	}
-	if APNS == "true" {
-		go SendApns(title, message)
-	}
+	// if APNS == "true" {
+	// 	go SendApns(title, message)
+	// }
 	// if APNSSandbox == "true" {
 	// 	go SendApnsSandbox(title, message)
 	// }
@@ -156,15 +166,9 @@ func UnregisterGcm(r *http.Request) {
 	dao.RemoveGCMToken(app, token)
 }
 
-func SendGCM(app string, title string, message string) {
-	log.Println("Title: " + title)
-	log.Println("Message: " + message)
-	web_logs.GCMLogs("Title: " + title)
-	web_logs.GCMLogs("Message: " + message)
-	// Create the message to be sent.
-	data := map[string]interface{}{"title": title, "message": message}
-
-	tokens := dao.GetGCMTokens(app)
+func SendGCM(params map[string]interface{}) {
+	log.Println(params)
+	tokens := dao.GetGCMTokens(params["app"].(string))
 
 	for i := 0; i < len(tokens); i = i + MAX_GCM_TOKENS {
 		max := i + MAX_GCM_TOKENS
@@ -174,19 +178,19 @@ func SendGCM(app string, title string, message string) {
 		block := strconv.Itoa(i) + " - " + strconv.Itoa(max-1)
 		web_logs.GCMLogs("Send block: " + block)
 		log.Println("Send block: " + block)
-		go SendRequestToGCM(app, data, tokens[i:max], block)
+		go SendRequestToGCM(params, tokens[i:max], block)
 	}
 
 	web_logs.GCMLogs("Notifications sent to " + strconv.Itoa(len(tokens)) + " Android devices")
 }
-func SendRequestToGCM(app string, data map[string]interface{}, toks []string, block string) {
+func SendRequestToGCM(data map[string]interface{}, toks []string, block string) {
 	tokens := make([]string, len(toks))
 	copy(tokens, toks)
 
 	t1 := time.Now()
 	msg := gcm.NewMessage(data, tokens...)
 
-	appSettings, app_error := GetAppConfig(app)
+	appSettings, app_error := GetAppConfig(data["app"].(string))
 	if app_error != nil {
 		return
 	}
@@ -204,6 +208,7 @@ func SendRequestToGCM(app string, data map[string]interface{}, toks []string, bl
 		web_logs.GCMLogs("OK: " + string(res))
 
 		if resp.Failure > 0 {
+			var app = data["app"].(string)
 			for index, el := range resp.Results {
 				if el.Error != "" && el.RegistrationID == "" {
 					go dao.RemoveGCMToken(app, tokens[index])
