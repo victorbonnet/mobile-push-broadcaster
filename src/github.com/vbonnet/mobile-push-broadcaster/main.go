@@ -20,7 +20,7 @@ import (
 
 type WebPageInfo struct {
 	Server 		string
-	Port 		int
+	Port 		string
 	AppInfos	[]AppInfo
 }
 
