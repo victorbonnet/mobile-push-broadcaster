@@ -37,12 +37,11 @@ func RemoveGCMToken(app string, token string) {
 		if token == element {
 			gcm_tokens[app] = append(gcm_tokens[app][:i], gcm_tokens[app][i+1:]...)
 			log.Println("Token removed: " + token)
+			go persistGCM(gcm_tokens)
 			return
 		}
 	}
 	log.Println("No Token to remove: " + token)
-
-	go persistGCM(gcm_tokens)
 }
 
 func GetGCMTokens(app string) []string {

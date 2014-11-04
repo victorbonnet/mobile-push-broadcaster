@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"time"
+	"sync"
 )
 
 type WebPageInfo struct {
@@ -179,7 +180,8 @@ func UnregisterGcm(r *http.Request) {
 }
 
 func SendGCM(params map[string]interface{}) {
-	log.Println(params)
+	var wg sync.WaitGroup
+	t1 := time.Now()
 	tokens := dao.GetGCMTokens(params["app"].(string))
 
 	var reqNumber int = 0;
@@ -188,16 +190,20 @@ func SendGCM(params map[string]interface{}) {
 		if max >= len(tokens) {
 			max = len(tokens)
 		}
-		block := strconv.Itoa(i) + " - " + strconv.Itoa(max-1)
 		reqNumber = reqNumber + 1
 		web_logs.GCMLogs("Send request " + strconv.Itoa(reqNumber) + " to the GCM server")
-		log.Println("Send block: " + block)
-		go SendRequestToGCM(params, tokens[i:max], reqNumber)
+		log.Println("Send request " + strconv.Itoa(reqNumber) + " to the GCM server")
+		wg.Add(1)
+		go SendRequestToGCM(params, tokens[i:max], reqNumber, &wg)
 	}
 
-	web_logs.GCMLogs("Notifications sent to " + strconv.Itoa(len(tokens)) + " Android devices")
+	wg.Wait()
+	t2 := time.Now()
+	var duration time.Duration = t2.Sub(t1)
+	web_logs.GCMLogs("Notifications sent to " + strconv.Itoa(len(tokens)) + " Android devices in " + duration.String())
+	log.Println("Notifications sent to " + strconv.Itoa(len(tokens)) + " Android devices in " + duration.String())
 }
-func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int) {
+func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int, wg *sync.WaitGroup) {
 	tokens := make([]string, len(toks))
 	copy(tokens, toks)
 
@@ -237,6 +243,8 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int)
 	t2 := time.Now()
 	var duration time.Duration = t2.Sub(t1)
 	web_logs.GCMLogs("Request " + strconv.Itoa(reqNumber) + " sent to " + strconv.Itoa(len(toks)) + " devices in " + duration.String())
+	log.Println("Request " + strconv.Itoa(reqNumber) + " sent to " + strconv.Itoa(len(toks)) + " devices in " + duration.String())
+	wg.Done()
 }
 
 func SendApns(title string, message string) {
