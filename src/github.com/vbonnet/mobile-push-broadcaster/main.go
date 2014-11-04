@@ -191,7 +191,6 @@ func SendGCM(params map[string]interface{}) {
 			max = len(tokens)
 		}
 		reqNumber = reqNumber + 1
-		web_logs.GCMLogs("Send request " + strconv.Itoa(reqNumber) + " to the GCM server")
 		log.Println("Send request " + strconv.Itoa(reqNumber) + " to the GCM server")
 		wg.Add(1)
 		go SendRequestToGCM(params, tokens[i:max], reqNumber, &wg)
@@ -225,7 +224,6 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int,
 	if resp != nil {
 		res, _ := json.Marshal(resp)
 		log.Println(string(res))
-		web_logs.GCMLogs("OK: " + string(res))
 
 		if resp.Failure > 0 || resp.CanonicalIDs > 0 {
 			var app = data["app"].(string)
