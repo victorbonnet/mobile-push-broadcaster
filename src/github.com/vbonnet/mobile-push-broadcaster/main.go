@@ -308,11 +308,8 @@ func SendApns(params map[string]interface{}) {
 		return
 	}
 
-	title := params["title"]
-	message := params["message"]
-
 	payload := apns.NewPayload()
-	payload.Alert = title
+	payload.Alert = params["title"]
 	payload.Badge = 42
 	payload.Sound = "bingbong.aiff"
 
@@ -324,8 +321,9 @@ func SendApns(params map[string]interface{}) {
 		pn.DeviceToken = tokens[i]
 		pn.AddPayload(payload)
 
-		pn.Set("title", title)
-		pn.Set("message", message)
+		for key, value := range params {
+			pn.Set(key, value)
+		}
 
 		resp := client.Send(pn)
 
@@ -371,11 +369,8 @@ func SendApnsSandbox(params map[string]interface{}) {
 		return
 	}
 
-	title := params["title"]
-	message := params["message"]
-
 	payload := apns.NewPayload()
-	payload.Alert = message
+	payload.Alert = params["title"]
 	payload.Badge = 42
 	payload.Sound = "bingbong.aiff"
 
@@ -387,8 +382,9 @@ func SendApnsSandbox(params map[string]interface{}) {
 		pn.DeviceToken = tokens[i]
 		pn.AddPayload(payload)
 
-		pn.Set("title", title)
-		pn.Set("message", message)
+		for key, value := range params {
+			pn.Set(key, value)
+		}
 
 		resp := client.Send(pn)
 
