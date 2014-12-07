@@ -162,71 +162,77 @@ func Broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func RegisterGcm(r *http.Request) {
+func RegisterGcm(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("RegisterGcm: app or token empty")
-		return
+		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
 	}
 	log.Println("Register GCM token: " + token)
 	dao.AddGCMToken(app, token)
+	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
 }
 
-func UnregisterGcm(r *http.Request) {
+func UnregisterGcm(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("UnregisterGcm: app or token empty")
-		return
+		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
 	}
 	log.Println("Unregister GCM token: " + token)
 	dao.RemoveGCMToken(app, token)
+	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
 }
 
-func RegisterApns(r *http.Request) {
+func RegisterApns(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("RegisterApns: app or token empty")
-		return
+		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
 	}
 	log.Println("Register APNS token: " + token)
 	dao.AddAPNSToken(app, token)
+	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
 }
 
-func UnregisterApns(r *http.Request) {
+func UnregisterApns(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("UnregisterApns: app or token empty")
-		return
+		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
 	}
 	log.Println("Unregister APNS token: " + token)
 	dao.RemoveAPNSToken(app, token)
+	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
 }
 
-func RegisterApnsSandbox(r *http.Request) {
+func RegisterApnsSandbox(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	log.Println("app: " + app)
 	if token == "" || app == "" {
 		log.Println("RegisterApnsSandbox: app or token empty")
-		return
+		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
 	}
 	log.Println("Register APNSSandbox token: " + token)
 	dao.AddAPNSSandboxToken(app, token)
+	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
 }
 
-func UnregisterApnsSandbox(r *http.Request) {
+func UnregisterApnsSandbox(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("UnregisterApnsSandbox: app or token empty")
-		return
+		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
 	}
 	log.Println("Unregister APNSSandbox token: " + token)
 	dao.RemoveAPNSSandboxToken(app, token)
+	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
 }
 
 func SendGCM(params map[string]interface{}) {

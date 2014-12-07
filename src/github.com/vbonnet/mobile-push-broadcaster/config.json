@@ -3,9 +3,9 @@
     "port": "3000",
     "apps": [
     {
-        "name": "App1",
+        "name": "test_ios",
         "gcm_api_key": "KEY",
-        "apns_cert": "=",
+        "apns_cert": "",
         "apns_key": "",
         "apns_cert_sandbox": "",
         "apns_key_sandbox": "",
