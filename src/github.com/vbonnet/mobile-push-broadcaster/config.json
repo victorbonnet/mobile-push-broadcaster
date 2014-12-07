@@ -5,6 +5,10 @@
     {
         "name": "App1",
         "gcm_api_key": "KEY",
+        "apns_cert": "=",
+        "apns_key": "",
+        "apns_cert_sandbox": "",
+        "apns_key_sandbox": "",
         "fields": [
             {
                 "name": "title",

@@ -101,7 +101,7 @@
 	        <paper-radio-group id="apps">
 	        {[{ range .AppInfos }]}          
 	          <paper-radio-button on-tap="{{showAppDetails}}" name="{[{ .Name }]}" id="{[{ .Name }]}" label="{[{ .Name }]}"></paper-radio-button>
-            <span id="app_info">Android: {[{ .AndroidDevices }]},  iOS: {[{ .IOSDevices }]}</span><br/>
+            <span id="app_info">Android: {[{ .AndroidDevices }]},  iOS: {[{ .IOSDevices }]},  iOS Sandbox: {[{ .IOSSandboxDevices }]}</span><br/>
 	        {[{ end }]}
 	        </paper-radio-group>
 

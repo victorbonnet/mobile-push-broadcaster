@@ -15,39 +15,44 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 	"sync"
+	"time"
 )
 
 type WebPageInfo struct {
-	Server 		string
-	Port 		string
-	AppInfos	[]AppInfo
+	Server   string
+	Port     string
+	AppInfos []AppInfo
 }
 
 type AppInfo struct {
-	Name           		string
-	AndroidDevices 		int
-	IOSDevices     		int
-	Fields 				[]Field
+	Name              string
+	AndroidDevices    int
+	IOSDevices        int
+	IOSSandboxDevices int
+	Fields            []Field
 }
 
 type Field struct {
-	Name      	string `json:"name"`
-	Label      	string `json:"label"`
-	Tips      	string `json:"tips"`
+	Name  string `json:"name"`
+	Label string `json:"label"`
+	Tips  string `json:"tips"`
 }
 
 type AppSettings struct {
-	Name      	string `json:"name"`
-	GcmApiKey 	string `json:"gcm_api_key"`
-	Fields 		[]Field  `json:"fields"`
+	Name            string  `json:"name"`
+	GcmApiKey       string  `json:"gcm_api_key"`
+	ApnsCert        string  `json:"apns_cert"`
+	ApnsKey         string  `json:"apns_key"`
+	ApnsCertSandbox string  `json:"apns_cert_sandbox"`
+	ApnsKeySandbox  string  `json:"apns_key_sandbox"`
+	Fields          []Field `json:"fields"`
 }
 
 var settings struct {
-	SERVER  string `json:"server"`
-	PORT 	string `json:"port"`
-	Apps 	[]AppSettings `json:"apps"`
+	SERVER string        `json:"server"`
+	PORT   string        `json:"port"`
+	Apps   []AppSettings `json:"apps"`
 }
 
 const MAX_GCM_TOKENS = 1000
@@ -85,10 +90,10 @@ func main() {
 	m.Post("/gcm/unregister", UnregisterGcm)
 
 	// APNS
-	// m.Post("/apns/register", registerGcm)
-	// m.Post("/apns/unregister", unregisterGcm)
-	// m.Post("/apns/register_sandbox", registerGcm)
-	// m.Post("/apns/unregister_sandbox", unregisterGcm)
+	m.Post("/apns/register", RegisterApns)
+	m.Post("/apns/unregister", UnregisterApns)
+	m.Post("/apns/register_sandbox", RegisterApnsSandbox)
+	m.Post("/apns/unregister_sandbox", UnregisterApnsSandbox)
 
 	// websockets to display logs in the web page
 	m.Get("/sock_gcm", web_logs.SockGCM)
@@ -119,10 +124,10 @@ func GetAppConfig(app string) (AppSettings, error) {
 	return AppSettings{}, errors.New("No app with the name: " + app)
 }
 func GetPageInfo() WebPageInfo {
-	var webPageInfo WebPageInfo;
+	var webPageInfo WebPageInfo
 	var appInfos []AppInfo
 	for _, element := range settings.Apps {
-		appInfo := AppInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), element.Fields}
+		appInfo := AppInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), dao.GetNbAPNSSandboxTokens(element.Name), element.Fields}
 		appInfos = append(appInfos, appInfo)
 	}
 	webPageInfo.Server = settings.SERVER
@@ -138,23 +143,23 @@ func Index(render render.Render) {
 func Broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {
 	var params = make(map[string]interface{})
 	for k, v := range r.URL.Query() {
-        params[k] = v[0]
-    } 
+		params[k] = v[0]
+	}
 
-    if params["app"] == nil {
-    	log.Println("app is not defined")
-    	return
-    }
-    
+	if params["app"] == nil {
+		log.Println("app is not defined")
+		return
+	}
+
 	if params["GCM"] == "true" {
 		go SendGCM(params)
 	}
-	// if APNS == "true" {
-	// 	go SendApns(title, message)
-	// }
-	// if APNSSandbox == "true" {
-	// 	go SendApnsSandbox(title, message)
-	// }
+	if params["APNS"] == "true" {
+		go SendApns(params)
+	}
+	if params["APNSSandbox"] == "true" {
+		go SendApnsSandbox(params)
+	}
 }
 
 func RegisterGcm(r *http.Request) {
@@ -179,12 +184,57 @@ func UnregisterGcm(r *http.Request) {
 	dao.RemoveGCMToken(app, token)
 }
 
+func RegisterApns(r *http.Request) {
+	app := r.PostFormValue("app")
+	token := r.PostFormValue("token")
+	if token == "" || app == "" {
+		log.Println("RegisterApns: app or token empty")
+		return
+	}
+	log.Println("Register APNS token: " + token)
+	dao.AddAPNSToken(app, token)
+}
+
+func UnregisterApns(r *http.Request) {
+	app := r.PostFormValue("app")
+	token := r.PostFormValue("token")
+	if token == "" || app == "" {
+		log.Println("UnregisterApns: app or token empty")
+		return
+	}
+	log.Println("Unregister APNS token: " + token)
+	dao.RemoveAPNSToken(app, token)
+}
+
+func RegisterApnsSandbox(r *http.Request) {
+	app := r.PostFormValue("app")
+	token := r.PostFormValue("token")
+	log.Println("app: " + app)
+	if token == "" || app == "" {
+		log.Println("RegisterApnsSandbox: app or token empty")
+		return
+	}
+	log.Println("Register APNSSandbox token: " + token)
+	dao.AddAPNSSandboxToken(app, token)
+}
+
+func UnregisterApnsSandbox(r *http.Request) {
+	app := r.PostFormValue("app")
+	token := r.PostFormValue("token")
+	if token == "" || app == "" {
+		log.Println("UnregisterApnsSandbox: app or token empty")
+		return
+	}
+	log.Println("Unregister APNSSandbox token: " + token)
+	dao.RemoveAPNSSandboxToken(app, token)
+}
+
 func SendGCM(params map[string]interface{}) {
 	var wg sync.WaitGroup
 	t1 := time.Now()
 	tokens := dao.GetGCMTokens(params["app"].(string))
 
-	var reqNumber int = 0;
+	var reqNumber int = 0
 	for i := 0; i < len(tokens); i = i + MAX_GCM_TOKENS {
 		max := i + MAX_GCM_TOKENS
 		if max >= len(tokens) {
@@ -245,59 +295,130 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int,
 	wg.Done()
 }
 
-func SendApns(title string, message string) {
-	for i := 0; i < 50; i++ {
-		time.Sleep(50 * time.Millisecond)
-		web_logs.APNSLogs("PUSH: " + strconv.Itoa(i))
+func SendApns(params map[string]interface{}) {
+	app := params["app"].(string)
+	appSettings, app_error := GetAppConfig(app)
+	if app_error != nil {
+		return
 	}
+
+	title := params["title"]
+	message := params["message"]
 
 	payload := apns.NewPayload()
 	payload.Alert = title
 	payload.Badge = 42
 	payload.Sound = "bingbong.aiff"
 
-	pn := apns.NewPushNotification()
-	pn.DeviceToken = "YOUR_DEVICE_TOKEN_HERE"
-	pn.AddPayload(payload)
+	client := apns.NewClient("gateway.push.apple.com:2195", appSettings.ApnsCert, appSettings.ApnsKey)
 
-	pn.Set("title", title)
-	pn.Set("message", message)
+	tokens := dao.GetAPNSTokens(params["app"].(string))
+	for i := 0; i < len(tokens); i = i + 1 {
+		pn := apns.NewPushNotification()
+		pn.DeviceToken = tokens[i]
+		pn.AddPayload(payload)
 
-	client := apns.NewClient("gateway.push.apple.com:2195", "YOUR_CERT_PEM", "YOUR_KEY_NOENC_PEM")
-	// resp := client.Send(pn)
-	client.Send(pn)
+		pn.Set("title", title)
+		pn.Set("message", message)
 
-	pn.PayloadString()
-	// alert, _ := pn.PayloadString()
-	// web_logs.APNSLogs("APNS - Alert:" + string(alert))
-	// web_logs.APNSLogs("APNS - Success:" + string(resp.Success))
-	// web_logs.APNSLogs("APNS - Error:" + string(resp.Error))
+		resp := client.Send(pn)
+
+		pn.PayloadString()
+		alert, _ := pn.PayloadString()
+		fmt.Println("  Alert:", alert)
+		fmt.Println("Success:", resp.Success)
+		fmt.Println("  Error:", resp.Error)
+
+		if resp.Error != nil {
+			go dao.RemoveAPNSToken(app, tokens[i])
+		}
+	}
+
+	go ApnsFeedback(params)
 }
 
-func SendApnsSandbox(title string, message string) {
-	for i := 0; i < 50; i++ {
-		time.Sleep(50 * time.Millisecond)
-		web_logs.APNSLogs("PUSH: " + strconv.Itoa(i))
+func ApnsFeedback(params map[string]interface{}) {
+	app := params["app"].(string)
+	appSettings, app_error := GetAppConfig(app)
+	if app_error != nil {
+		return
 	}
+	fmt.Println("- connecting to check for deactivated tokens (maximum read timeout =", apns.FeedbackTimeoutSeconds, "seconds)")
+
+	client := apns.NewClient("feedback.push.apple.com:2196", appSettings.ApnsCert, appSettings.ApnsKey)
+	go client.ListenForFeedback()
+
+	for {
+		select {
+		case resp := <-apns.FeedbackChannel:
+			fmt.Println("- recv'd:", resp.DeviceToken)
+		case <-apns.ShutdownChannel:
+			fmt.Println("- nothing returned from the feedback service")
+		}
+	}
+}
+
+func SendApnsSandbox(params map[string]interface{}) {
+	app := params["app"].(string)
+	appSettings, app_error := GetAppConfig(app)
+	if app_error != nil {
+		return
+	}
+
+	title := params["title"]
+	message := params["message"]
+
 	payload := apns.NewPayload()
-	payload.Alert = title
+	payload.Alert = message
 	payload.Badge = 42
 	payload.Sound = "bingbong.aiff"
 
-	pn := apns.NewPushNotification()
-	pn.DeviceToken = "YOUR_DEVICE_TOKEN_HERE"
-	pn.AddPayload(payload)
+	client := apns.NewClient("gateway.sandbox.push.apple.com:2195", appSettings.ApnsCertSandbox, appSettings.ApnsKeySandbox)
 
-	pn.Set("title", title)
-	pn.Set("message", message)
+	tokens := dao.GetAPNSSandboxTokens(params["app"].(string))
+	for i := 0; i < len(tokens); i = i + 1 {
+		pn := apns.NewPushNotification()
+		pn.DeviceToken = tokens[i]
+		pn.AddPayload(payload)
 
-	client := apns.NewClient("gateway.sandbox.push.apple.com:2195", "YOUR_CERT_PEM", "YOUR_KEY_NOENC_PEM")
-	// resp := client.Send(pn)
-	client.Send(pn)
+		pn.Set("title", title)
+		pn.Set("message", message)
 
-	pn.PayloadString()
-	// alert, _ := pn.PayloadString()
-	// APNSLogs("APNS - Alert:" + string(alert))
-	// APNSLogs("APNS - Success:" + string(resp.Success))
-	// APNSLogs("APNS - Error:" + string(resp.Error))
+		resp := client.Send(pn)
+
+		pn.PayloadString()
+		alert, _ := pn.PayloadString()
+		fmt.Println("  Alert:", alert)
+		fmt.Println("Success:", resp.Success)
+		fmt.Println("  Error:", resp.Error)
+
+		if resp.Error != nil {
+			go dao.RemoveAPNSSandboxToken(app, tokens[i])
+		}
+	}
+
+	go ApnsFeedbackSandbox(params)
+}
+
+func ApnsFeedbackSandbox(params map[string]interface{}) {
+	app := params["app"].(string)
+	appSettings, app_error := GetAppConfig(app)
+	if app_error != nil {
+		return
+	}
+	fmt.Println("- connecting to check for deactivated tokens (maximum read timeout =", apns.FeedbackTimeoutSeconds, "seconds)")
+
+	client := apns.NewClient("feedback.sandbox.push.apple.com:2196", appSettings.ApnsCertSandbox, appSettings.ApnsKeySandbox)
+	go client.ListenForFeedback()
+
+	for {
+		select {
+		case resp := <-apns.FeedbackChannel:
+			fmt.Println("- recv'd:", resp.DeviceToken)
+		case <-apns.ShutdownChannel:
+			fmt.Println("- nothing returned from the feedback service")
+		}
+	}
+
+	go ApnsFeedbackSandbox(params)
 }
