@@ -356,6 +356,7 @@ func ApnsFeedback(params map[string]interface{}) {
 		select {
 		case resp := <-apns.FeedbackChannel:
 			fmt.Println("- recv'd:", resp.DeviceToken)
+			go dao.RemoveAPNSToken(app, resp.DeviceToken)
 		case <-apns.ShutdownChannel:
 			fmt.Println("- nothing returned from the feedback service")
 		}
@@ -417,6 +418,7 @@ func ApnsFeedbackSandbox(params map[string]interface{}) {
 		select {
 		case resp := <-apns.FeedbackChannel:
 			fmt.Println("- recv'd:", resp.DeviceToken)
+			go dao.RemoveAPNSSandboxToken(app, resp.DeviceToken)
 		case <-apns.ShutdownChannel:
 			fmt.Println("- nothing returned from the feedback service")
 		}
