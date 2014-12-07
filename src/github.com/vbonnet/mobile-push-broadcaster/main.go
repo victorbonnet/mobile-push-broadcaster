@@ -69,6 +69,8 @@ func main() {
 	// Load tokens from Storage
 	log.Println("Load the Tokens from Storage")
 	dao.LoadGCMFromStorage()
+	dao.LoadAPNSFromStorage()
+	dao.LoadAPNSSandboxFromStorage()
 	log.Println("Tokens loaded")
 
 	m := martini.Classic()
