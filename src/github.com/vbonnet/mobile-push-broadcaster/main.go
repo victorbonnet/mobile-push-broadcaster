@@ -309,7 +309,7 @@ func SendApns(params map[string]interface{}) {
 	}
 
 	payload := apns.NewPayload()
-	payload.Alert = params["title"]
+	payload.Alert = params["message"]
 	payload.Badge = 42
 	payload.Sound = "bingbong.aiff"
 
@@ -371,7 +371,7 @@ func SendApnsSandbox(params map[string]interface{}) {
 	}
 
 	payload := apns.NewPayload()
-	payload.Alert = params["title"]
+	payload.Alert = params["message"]
 	payload.Badge = 42
 	payload.Sound = "bingbong.aiff"
 
