@@ -335,6 +335,8 @@ func SendApns(params map[string]interface{}) {
 		fmt.Println("Success:", resp.Success)
 		fmt.Println("  Error:", resp.Error)
 
+		web_logs.GCMLogs("Sent to " + strconv.Itoa(i) + " devices")
+
 		if resp.Error != nil {
 			go dao.RemoveAPNSToken(app, tokens[i])
 		}
@@ -396,6 +398,8 @@ func SendApnsSandbox(params map[string]interface{}) {
 		fmt.Println("  Alert:", alert)
 		fmt.Println("Success:", resp.Success)
 		fmt.Println("  Error:", resp.Error)
+
+		web_logs.GCMLogs("Sent to " + strconv.Itoa(i) + " devices")
 
 		if resp.Error != nil {
 			go dao.RemoveAPNSSandboxToken(app, tokens[i])
