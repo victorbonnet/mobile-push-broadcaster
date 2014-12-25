@@ -9,6 +9,7 @@ go get github.com/codegangsta/martini/
 go get github.com/go-martini/martini/
 go get github.com/gorilla/websocket
 go get github.com/martini-contrib/render/
+go get github.com/martini-contrib/auth
 
 rm -Rf bin/*
 echo "install web_logs"

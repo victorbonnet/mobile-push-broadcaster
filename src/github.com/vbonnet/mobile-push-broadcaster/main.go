@@ -7,6 +7,7 @@ import (
 	"github.com/alexjlockwood/gcm"
 	"github.com/anachronistic/apns"
 	"github.com/codegangsta/martini"
+	"github.com/martini-contrib/auth"
 	"github.com/martini-contrib/render"
 	"github.com/vbonnet/mobile-push-broadcaster/dao"
 	"github.com/vbonnet/mobile-push-broadcaster/web_logs"
@@ -50,9 +51,11 @@ type AppSettings struct {
 }
 
 var settings struct {
-	SERVER string        `json:"server"`
-	PORT   string        `json:"port"`
-	Apps   []AppSettings `json:"apps"`
+	Login    string        `json:"login"`
+	Password string        `json:"password"`
+	SERVER   string        `json:"server"`
+	PORT     string        `json:"port"`
+	Apps     []AppSettings `json:"apps"`
 }
 
 const MAX_GCM_TOKENS = 1000
@@ -75,6 +78,10 @@ func main() {
 
 	m := martini.Classic()
 
+	authenticator := auth.BasicFunc(func(username, password string) bool {
+		return auth.SecureCompare(username, settings.Login) && auth.SecureCompare(password, settings.Password)
+	})
+
 	m.Use(render.Renderer(render.Options{
 		Directory:  dir + "/web",
 		Extensions: []string{".tmpl", ".html"},
@@ -84,8 +91,8 @@ func main() {
 	}))
 	m.Use(martini.Static(dir + "/web"))
 
-	m.Get("/", Index)
-	m.Get("/broadcast", Broadcast)
+	m.Get("/", authenticator, Index)
+	m.Get("/broadcast", authenticator, Broadcast)
 
 	// GCM
 	m.Post("/gcm/register", RegisterGcm)
@@ -103,6 +110,10 @@ func main() {
 
 	log.Fatal(http.ListenAndServe(":"+settings.PORT, m))
 	m.Run()
+}
+
+func Auth(username, password string) bool {
+	return auth.SecureCompare(username, settings.Login) && auth.SecureCompare(password, settings.Password)
 }
 
 func LoadConfig(dir string) {
