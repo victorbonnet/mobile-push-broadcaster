@@ -3,7 +3,6 @@
 export GOPATH="`pwd`"
 
 go get github.com/alexjlockwood/gcm/
-go get github.com/anachronistic/apns/
 go get github.com/codegangsta/inject/
 go get github.com/codegangsta/martini/
 go get github.com/go-martini/martini/
@@ -24,6 +23,7 @@ fi
 
 echo "install dao"
 go install github.com/vbonnet/mobile-push-broadcaster/dao
+
 echo "install mobile-push-broadcaster"
 go install github.com/vbonnet/mobile-push-broadcaster
 

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/alexjlockwood/gcm"
-	"github.com/anachronistic/apns"
 	"github.com/codegangsta/martini"
 	"github.com/martini-contrib/auth"
 	"github.com/martini-contrib/render"
+	"github.com/vbonnet/mobile-push-broadcaster/apns"
 	"github.com/vbonnet/mobile-push-broadcaster/dao"
 	"github.com/vbonnet/mobile-push-broadcaster/web_logs"
 	"log"
@@ -329,6 +329,11 @@ func SendApns(params map[string]interface{}) {
 	client := apns.NewClient("gateway.push.apple.com:2195", appSettings.ApnsCert, appSettings.ApnsKey)
 
 	tokens := dao.GetAPNSTokens(params["app"].(string))
+
+	go ApnsFeedback(params)
+
+	web_logs.APNSLogs("Prepare notifications")
+	var pushNotifications []*apns.PushNotification
 	for i := 0; i < len(tokens); i = i + 1 {
 		pn := apns.NewPushNotification()
 		pn.DeviceToken = tokens[i]
@@ -338,22 +343,15 @@ func SendApns(params map[string]interface{}) {
 			pn.Set(key, value)
 		}
 
-		resp := client.Send(pn)
-
-		pn.PayloadString()
-		alert, _ := pn.PayloadString()
-		fmt.Println("  Alert:", alert)
-		fmt.Println("Success:", resp.Success)
-		fmt.Println("  Error:", resp.Error)
-
-		web_logs.APNSLogs("Sent to " + strconv.Itoa(i+1) + " devices")
-
-		if resp.Error != nil {
-			go dao.RemoveAPNSToken(app, tokens[i])
-		}
+		pushNotifications = append(pushNotifications, pn)
 	}
 
-	go ApnsFeedback(params)
+	web_logs.APNSLogs("Broadcasting to " + strconv.Itoa(len(tokens)) + " devices")
+	err := client.Broadcast(pushNotifications)
+	if err != nil {
+		fmt.Errorf("Error while broadcasting", err)
+	}
+	web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
 }
 
 func ApnsFeedback(params map[string]interface{}) {
@@ -393,6 +391,11 @@ func SendApnsSandbox(params map[string]interface{}) {
 	client := apns.NewClient("gateway.sandbox.push.apple.com:2195", appSettings.ApnsCertSandbox, appSettings.ApnsKeySandbox)
 
 	tokens := dao.GetAPNSSandboxTokens(params["app"].(string))
+
+	go ApnsFeedbackSandbox(params)
+
+	web_logs.APNSLogs("Prepare notifications")
+	var pushNotifications []*apns.PushNotification
 	for i := 0; i < len(tokens); i = i + 1 {
 		pn := apns.NewPushNotification()
 		pn.DeviceToken = tokens[i]
@@ -402,22 +405,15 @@ func SendApnsSandbox(params map[string]interface{}) {
 			pn.Set(key, value)
 		}
 
-		resp := client.Send(pn)
-
-		pn.PayloadString()
-		alert, _ := pn.PayloadString()
-		fmt.Println("  Alert:", alert)
-		fmt.Println("Success:", resp.Success)
-		fmt.Println("  Error:", resp.Error)
-
-		web_logs.APNSLogs("Sent to " + strconv.Itoa(i+1) + " devices")
-
-		if resp.Error != nil {
-			go dao.RemoveAPNSSandboxToken(app, tokens[i])
-		}
+		pushNotifications = append(pushNotifications, pn)
 	}
 
-	go ApnsFeedbackSandbox(params)
+	web_logs.APNSLogs("Broadcasting to " + strconv.Itoa(len(tokens)) + " devices")
+	err := client.Broadcast(pushNotifications)
+	if err != nil {
+		fmt.Println("Error while broadcasting", err)
+	}
+	web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
 }
 
 func ApnsFeedbackSandbox(params map[string]interface{}) {
