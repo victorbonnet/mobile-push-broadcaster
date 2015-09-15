@@ -21,34 +21,34 @@ import (
 	"github.com/martini-contrib/render"
 )
 
-type WebPageInfo struct {
+type webPageInfo struct {
 	Server   string
 	Port     string
-	AppInfos []AppInfo
+	AppInfos []appInfo
 }
 
-type AppInfo struct {
+type appInfo struct {
 	Name              string
 	AndroidDevices    int
 	IOSDevices        int
 	IOSSandboxDevices int
-	Fields            []Field
+	Fields            []field
 }
 
-type Field struct {
+type field struct {
 	Name  string `json:"name"`
 	Label string `json:"label"`
 	Tips  string `json:"tips"`
 }
 
-type AppSettings struct {
+type appSettings struct {
 	Name            string  `json:"name"`
-	GcmApiKey       string  `json:"gcm_api_key"`
+	GcmAPIKey       string  `json:"gcm_api_key"`
 	ApnsCert        string  `json:"apns_cert"`
 	ApnsKey         string  `json:"apns_key"`
 	ApnsCertSandbox string  `json:"apns_cert_sandbox"`
 	ApnsKeySandbox  string  `json:"apns_key_sandbox"`
-	Fields          []Field `json:"fields"`
+	Fields          []field `json:"fields"`
 }
 
 var settings struct {
@@ -56,10 +56,10 @@ var settings struct {
 	Password string        `json:"password"`
 	SERVER   string        `json:"server"`
 	PORT     string        `json:"port"`
-	Apps     []AppSettings `json:"apps"`
+	Apps     []appSettings `json:"apps"`
 }
 
-const MAX_GCM_TOKENS = 1000
+const maxGcmTokens = 1000
 
 func main() {
 	staticFilesDir := "."
@@ -128,19 +128,19 @@ func LoadConfig(staticFilesDir string) {
 	}
 }
 
-func GetAppConfig(app string) (AppSettings, error) {
+func GetAppConfig(app string) (appSettings, error) {
 	for _, element := range settings.Apps {
 		if app == element.Name {
 			return element, nil
 		}
 	}
-	return AppSettings{}, errors.New("No app with the name: " + app)
+	return appSettings{}, errors.New("No app with the name: " + app)
 }
-func GetPageInfo() WebPageInfo {
-	var webPageInfo WebPageInfo
-	var appInfos []AppInfo
+func GetPageInfo() webPageInfo {
+	var webPageInfo webPageInfo
+	var appInfos []appInfo
 	for _, element := range settings.Apps {
-		appInfo := AppInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), dao.GetNbAPNSSandboxTokens(element.Name), element.Fields}
+		appInfo := appInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), dao.GetNbAPNSSandboxTokens(element.Name), element.Fields}
 		appInfos = append(appInfos, appInfo)
 	}
 	webPageInfo.Server = settings.SERVER
@@ -254,8 +254,8 @@ func SendGCM(params map[string]interface{}) {
 	tokens := dao.GetGCMTokens(params["app"].(string))
 
 	var reqNumber int = 0
-	for i := 0; i < len(tokens); i = i + MAX_GCM_TOKENS {
-		max := i + MAX_GCM_TOKENS
+	for i := 0; i < len(tokens); i = i + maxGcmTokens {
+		max := i + maxGcmTokens
 		if max >= len(tokens) {
 			max = len(tokens)
 		}
@@ -282,7 +282,7 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int,
 	if app_error != nil {
 		return
 	}
-	sender := &gcm.Sender{ApiKey: appSettings.GcmApiKey}
+	sender := &gcm.Sender{ApiKey: appSettings.GcmAPIKey}
 
 	// Send the message and receive the response after at most two retries.
 	resp, err := sender.Send(msg, 2)
