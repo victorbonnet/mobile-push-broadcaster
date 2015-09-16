@@ -54,7 +54,7 @@ type appSettings struct {
 var settings struct {
 	Login    string        `json:"login"`
 	Password string        `json:"password"`
-	SERVER   string        `json:"server"`
+	Server   string        `json:"server"`
 	PORT     string        `json:"port"`
 	Apps     []appSettings `json:"apps"`
 }
@@ -67,7 +67,7 @@ func main() {
 		staticFilesDir = os.Args[1]
 	}
 
-	LoadConfig(staticFilesDir)
+	loadConfig(staticFilesDir)
 
 	// Load tokens from Storage
 	log.Println("Load the Tokens from Storage")
@@ -91,18 +91,18 @@ func main() {
 	}))
 	m.Use(martini.Static(staticFilesDir + "/web"))
 
-	m.Get("/", authenticator, Index)
-	m.Get("/broadcast", authenticator, Broadcast)
+	m.Get("/", authenticator, index)
+	m.Get("/broadcast", authenticator, broadcast)
 
 	// GCM
-	m.Post("/gcm/register", RegisterGcm)
-	m.Post("/gcm/unregister", UnregisterGcm)
+	m.Post("/gcm/register", registerGcm)
+	m.Post("/gcm/unregister", unregisterGcm)
 
 	// APNS
-	m.Post("/apns/register", RegisterApns)
-	m.Post("/apns/unregister", UnregisterApns)
-	m.Post("/apns/register_sandbox", RegisterApnsSandbox)
-	m.Post("/apns/unregister_sandbox", UnregisterApnsSandbox)
+	m.Post("/apns/register", registerApns)
+	m.Post("/apns/unregister", unregisterApns)
+	m.Post("/apns/register_sandbox", registerApnsSandbox)
+	m.Post("/apns/unregister_sandbox", unregisterApnsSandbox)
 
 	// websockets to display logs in the web page
 	m.Get("/sock_gcm", web_logs.SockGCM)
@@ -112,11 +112,7 @@ func main() {
 	m.Run()
 }
 
-func Auth(username, password string) bool {
-	return auth.SecureCompare(username, settings.Login) && auth.SecureCompare(password, settings.Password)
-}
-
-func LoadConfig(staticFilesDir string) {
+func loadConfig(staticFilesDir string) {
 	configFile, err := os.Open(staticFilesDir + "/config.json")
 	if err != nil {
 		fmt.Errorf("opening config file", err.Error())
@@ -128,7 +124,7 @@ func LoadConfig(staticFilesDir string) {
 	}
 }
 
-func GetAppConfig(app string) (appSettings, error) {
+func getAppConfig(app string) (appSettings, error) {
 	for _, element := range settings.Apps {
 		if app == element.Name {
 			return element, nil
@@ -136,24 +132,24 @@ func GetAppConfig(app string) (appSettings, error) {
 	}
 	return appSettings{}, errors.New("No app with the name: " + app)
 }
-func GetPageInfo() webPageInfo {
+func getPageInfo() webPageInfo {
 	var webPageInfo webPageInfo
 	var appInfos []appInfo
 	for _, element := range settings.Apps {
 		appInfo := appInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), dao.GetNbAPNSSandboxTokens(element.Name), element.Fields}
 		appInfos = append(appInfos, appInfo)
 	}
-	webPageInfo.Server = settings.SERVER
+	webPageInfo.Server = settings.Server
 	webPageInfo.Port = settings.PORT
 	webPageInfo.AppInfos = appInfos
 	return webPageInfo
 }
 
-func Index(render render.Render) {
-	render.HTML(200, "broadcaster", GetPageInfo())
+func index(render render.Render) {
+	render.HTML(200, "broadcaster", getPageInfo())
 }
 
-func Broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {
+func broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {
 	var params = make(map[string]interface{})
 	for k, v := range r.URL.Query() {
 		params[k] = v[0]
@@ -165,17 +161,17 @@ func Broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {
 	}
 
 	if params["GCM"] == "true" {
-		go SendGCM(params)
+		go sendGcm(params)
 	}
 	if params["APNS"] == "true" {
-		go SendApns(params)
+		go sendApns(params)
 	}
 	if params["APNSSandbox"] == "true" {
-		go SendApnsSandbox(params)
+		go sendApnsSandbox(params)
 	}
 }
 
-func RegisterGcm(r *http.Request) string {
+func registerGcm(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
@@ -187,7 +183,7 @@ func RegisterGcm(r *http.Request) string {
 	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
 }
 
-func UnregisterGcm(r *http.Request) string {
+func unregisterGcm(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
@@ -199,7 +195,7 @@ func UnregisterGcm(r *http.Request) string {
 	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
 }
 
-func RegisterApns(r *http.Request) string {
+func registerApns(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
@@ -211,7 +207,7 @@ func RegisterApns(r *http.Request) string {
 	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
 }
 
-func UnregisterApns(r *http.Request) string {
+func unregisterApns(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
@@ -223,7 +219,7 @@ func UnregisterApns(r *http.Request) string {
 	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
 }
 
-func RegisterApnsSandbox(r *http.Request) string {
+func registerApnsSandbox(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	log.Println("app: " + app)
@@ -236,7 +232,7 @@ func RegisterApnsSandbox(r *http.Request) string {
 	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
 }
 
-func UnregisterApnsSandbox(r *http.Request) string {
+func unregisterApnsSandbox(r *http.Request) string {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
@@ -248,12 +244,12 @@ func UnregisterApnsSandbox(r *http.Request) string {
 	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
 }
 
-func SendGCM(params map[string]interface{}) {
+func sendGcm(params map[string]interface{}) {
 	var wg sync.WaitGroup
 	t1 := time.Now()
 	tokens := dao.GetGCMTokens(params["app"].(string))
 
-	var reqNumber int = 0
+	var reqNumber int
 	for i := 0; i < len(tokens); i = i + maxGcmTokens {
 		max := i + maxGcmTokens
 		if max >= len(tokens) {
@@ -262,24 +258,24 @@ func SendGCM(params map[string]interface{}) {
 		reqNumber = reqNumber + 1
 		log.Println("Send request " + strconv.Itoa(reqNumber) + " to the GCM server")
 		wg.Add(1)
-		go SendRequestToGCM(params, tokens[i:max], reqNumber, &wg)
+		go sendRequestToGCM(params, tokens[i:max], reqNumber, &wg)
 	}
 
 	wg.Wait()
 	t2 := time.Now()
-	var duration time.Duration = t2.Sub(t1)
+	duration := t2.Sub(t1)
 	web_logs.GCMLogs("Notifications sent to " + strconv.Itoa(len(tokens)) + " Android devices in " + duration.String())
 	log.Println("Notifications sent to " + strconv.Itoa(len(tokens)) + " Android devices in " + duration.String())
 }
-func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int, wg *sync.WaitGroup) {
+func sendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int, wg *sync.WaitGroup) {
 	tokens := make([]string, len(toks))
 	copy(tokens, toks)
 
 	t1 := time.Now()
 	msg := gcm.NewMessage(data, tokens...)
 
-	appSettings, app_error := GetAppConfig(data["app"].(string))
-	if app_error != nil {
+	appSettings, appError := getAppConfig(data["app"].(string))
+	if appError != nil {
 		return
 	}
 	sender := &gcm.Sender{ApiKey: appSettings.GcmAPIKey}
@@ -308,16 +304,16 @@ func SendRequestToGCM(data map[string]interface{}, toks []string, reqNumber int,
 	}
 
 	t2 := time.Now()
-	var duration time.Duration = t2.Sub(t1)
+	duration := t2.Sub(t1)
 	web_logs.GCMLogs("Request " + strconv.Itoa(reqNumber) + " sent to " + strconv.Itoa(len(toks)) + " devices in " + duration.String())
 	log.Println("Request " + strconv.Itoa(reqNumber) + " sent to " + strconv.Itoa(len(toks)) + " devices in " + duration.String())
 	wg.Done()
 }
 
-func SendApns(params map[string]interface{}) {
+func sendApns(params map[string]interface{}) {
 	app := params["app"].(string)
-	appSettings, app_error := GetAppConfig(app)
-	if app_error != nil {
+	appSettings, appError := getAppConfig(app)
+	if appError != nil {
 		return
 	}
 
@@ -330,7 +326,7 @@ func SendApns(params map[string]interface{}) {
 
 	tokens := dao.GetAPNSTokens(params["app"].(string))
 
-	go ApnsFeedback(params)
+	go apnsFeedback(params)
 
 	web_logs.APNSLogs("Prepare notifications")
 	var pushNotifications []*apns.PushNotification
@@ -354,10 +350,10 @@ func SendApns(params map[string]interface{}) {
 	web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
 }
 
-func ApnsFeedback(params map[string]interface{}) {
+func apnsFeedback(params map[string]interface{}) {
 	app := params["app"].(string)
-	appSettings, app_error := GetAppConfig(app)
-	if app_error != nil {
+	appSettings, appError := getAppConfig(app)
+	if appError != nil {
 		return
 	}
 	fmt.Println("- connecting to check for deactivated tokens (maximum read timeout =", apns.FeedbackTimeoutSeconds, "seconds)")
@@ -376,10 +372,10 @@ func ApnsFeedback(params map[string]interface{}) {
 	}
 }
 
-func SendApnsSandbox(params map[string]interface{}) {
+func sendApnsSandbox(params map[string]interface{}) {
 	app := params["app"].(string)
-	appSettings, app_error := GetAppConfig(app)
-	if app_error != nil {
+	appSettings, appError := getAppConfig(app)
+	if appError != nil {
 		return
 	}
 
@@ -392,7 +388,7 @@ func SendApnsSandbox(params map[string]interface{}) {
 
 	tokens := dao.GetAPNSSandboxTokens(params["app"].(string))
 
-	go ApnsFeedbackSandbox(params)
+	go apnsFeedbackSandbox(params)
 
 	web_logs.APNSLogs("Prepare notifications")
 	var pushNotifications []*apns.PushNotification
@@ -416,10 +412,10 @@ func SendApnsSandbox(params map[string]interface{}) {
 	web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
 }
 
-func ApnsFeedbackSandbox(params map[string]interface{}) {
+func apnsFeedbackSandbox(params map[string]interface{}) {
 	app := params["app"].(string)
-	appSettings, app_error := GetAppConfig(app)
-	if app_error != nil {
+	appSettings, appError := getAppConfig(app)
+	if appError != nil {
 		return
 	}
 	fmt.Println("- connecting to check for deactivated tokens (maximum read timeout =", apns.FeedbackTimeoutSeconds, "seconds)")
@@ -437,5 +433,5 @@ func ApnsFeedbackSandbox(params map[string]interface{}) {
 		}
 	}
 
-	go ApnsFeedbackSandbox(params)
+	go apnsFeedbackSandbox(params)
 }
