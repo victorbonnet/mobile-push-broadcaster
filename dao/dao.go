@@ -9,43 +9,43 @@ import (
 	"sync"
 )
 
-var GCMFileLock sync.RWMutex
-var GCMMemLock sync.RWMutex
+var gcmFileLock sync.RWMutex
+var gcmMemLock sync.RWMutex
 
-var APNSFileLock sync.RWMutex
-var APNSMemLock sync.RWMutex
+var apnsFileLock sync.RWMutex
+var apnsMemLock sync.RWMutex
 
-var APNSSandboxFileLock sync.RWMutex
-var APNSSandboxMemLock sync.RWMutex
+var apnsSandboxFileLock sync.RWMutex
+var apnsSandboxMemLock sync.RWMutex
 
-var gcm_tokens map[string][]string = make(map[string][]string)
-var apns_tokens map[string][]string = make(map[string][]string)
-var apns_sandbox_tokens map[string][]string = make(map[string][]string)
+var gcmTokens = make(map[string][]string)
+var apnsTokens = make(map[string][]string)
+var apnsSandboxTokens = make(map[string][]string)
 
 //GCM
 func AddGCMToken(app string, token string) {
-	GCMMemLock.Lock()
-	defer GCMMemLock.Unlock()
-	for _, element := range gcm_tokens[app] {
+	gcmMemLock.Lock()
+	defer gcmMemLock.Unlock()
+	for _, element := range gcmTokens[app] {
 		if token == element {
 			log.Println("Token already registered: " + token + " for the app: " + app)
 			return
 		}
 	}
-	gcm_tokens[app] = append(gcm_tokens[app], token)
+	gcmTokens[app] = append(gcmTokens[app], token)
 	log.Println("Token added: " + token + " for the app: " + app)
 
-	go persistGCM(gcm_tokens)
+	go persistGCM(gcmTokens)
 }
 
 func RemoveGCMToken(app string, token string) {
-	GCMMemLock.Lock()
-	defer GCMMemLock.Unlock()
-	for i, element := range gcm_tokens[app] {
+	gcmMemLock.Lock()
+	defer gcmMemLock.Unlock()
+	for i, element := range gcmTokens[app] {
 		if token == element {
-			gcm_tokens[app] = append(gcm_tokens[app][:i], gcm_tokens[app][i+1:]...)
+			gcmTokens[app] = append(gcmTokens[app][:i], gcmTokens[app][i+1:]...)
 			log.Println("Token removed: " + token)
-			go persistGCM(gcm_tokens)
+			go persistGCM(gcmTokens)
 			return
 		}
 	}
@@ -53,20 +53,20 @@ func RemoveGCMToken(app string, token string) {
 }
 
 func GetGCMTokens(app string) []string {
-	GCMMemLock.RLock()
-	defer GCMMemLock.RUnlock()
-	return gcm_tokens[app]
+	gcmMemLock.RLock()
+	defer gcmMemLock.RUnlock()
+	return gcmTokens[app]
 }
 
 func GetNbGCMTokens(app string) int {
-	GCMMemLock.RLock()
-	defer GCMMemLock.RUnlock()
-	return len(gcm_tokens[app])
+	gcmMemLock.RLock()
+	defer gcmMemLock.RUnlock()
+	return len(gcmTokens[app])
 }
 
 func persistGCM(tokens map[string][]string) {
-	GCMFileLock.Lock()
-	defer GCMFileLock.Unlock()
+	gcmFileLock.Lock()
+	defer gcmFileLock.Unlock()
 	// dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	dir := "./"
 	res, _ := json.Marshal(tokens)
@@ -78,8 +78,8 @@ func persistGCM(tokens map[string][]string) {
 }
 
 func LoadGCMFromStorage() {
-	GCMFileLock.RLock()
-	defer GCMFileLock.RUnlock()
+	gcmFileLock.RLock()
+	defer gcmFileLock.RUnlock()
 	// dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	dir := "./"
 
@@ -87,7 +87,7 @@ func LoadGCMFromStorage() {
 	if err != nil {
 		return
 	}
-	er := json.Unmarshal(b, &gcm_tokens)
+	er := json.Unmarshal(b, &gcmTokens)
 	if err != nil {
 		panic(er)
 	}
@@ -95,28 +95,28 @@ func LoadGCMFromStorage() {
 
 //APNS
 func AddAPNSToken(app string, token string) {
-	APNSMemLock.Lock()
-	defer APNSMemLock.Unlock()
-	for _, element := range apns_tokens[app] {
+	apnsMemLock.Lock()
+	defer apnsMemLock.Unlock()
+	for _, element := range apnsTokens[app] {
 		if token == element {
 			log.Println("Token already registered: " + token + " for the app: " + app)
 			return
 		}
 	}
-	apns_tokens[app] = append(apns_tokens[app], token)
+	apnsTokens[app] = append(apnsTokens[app], token)
 	log.Println("Token added: " + token + " for the app: " + app)
 
-	go persistAPNS(apns_tokens)
+	go persistAPNS(apnsTokens)
 }
 
 func RemoveAPNSToken(app string, token string) {
-	APNSMemLock.Lock()
-	defer APNSMemLock.Unlock()
-	for i, element := range apns_tokens[app] {
+	apnsMemLock.Lock()
+	defer apnsMemLock.Unlock()
+	for i, element := range apnsTokens[app] {
 		if token == element {
-			apns_tokens[app] = append(apns_tokens[app][:i], apns_tokens[app][i+1:]...)
+			apnsTokens[app] = append(apnsTokens[app][:i], apnsTokens[app][i+1:]...)
 			log.Println("Token removed: " + token)
-			go persistAPNS(apns_tokens)
+			go persistAPNS(apnsTokens)
 			return
 		}
 	}
@@ -124,20 +124,20 @@ func RemoveAPNSToken(app string, token string) {
 }
 
 func GetAPNSTokens(app string) []string {
-	APNSMemLock.RLock()
-	defer APNSMemLock.RUnlock()
-	return apns_tokens[app]
+	apnsMemLock.RLock()
+	defer apnsMemLock.RUnlock()
+	return apnsTokens[app]
 }
 
 func GetNbAPNSTokens(app string) int {
-	APNSMemLock.RLock()
-	defer APNSMemLock.RUnlock()
-	return len(apns_tokens[app])
+	apnsMemLock.RLock()
+	defer apnsMemLock.RUnlock()
+	return len(apnsTokens[app])
 }
 
 func persistAPNS(tokens map[string][]string) {
-	APNSFileLock.Lock()
-	defer APNSFileLock.Unlock()
+	apnsFileLock.Lock()
+	defer apnsFileLock.Unlock()
 	// dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	dir := "./"
 	res, _ := json.Marshal(tokens)
@@ -149,8 +149,8 @@ func persistAPNS(tokens map[string][]string) {
 }
 
 func LoadAPNSFromStorage() {
-	APNSFileLock.RLock()
-	defer APNSFileLock.RUnlock()
+	apnsFileLock.RLock()
+	defer apnsFileLock.RUnlock()
 	// dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	dir := "./"
 
@@ -158,7 +158,7 @@ func LoadAPNSFromStorage() {
 	if err != nil {
 		return
 	}
-	er := json.Unmarshal(b, &apns_tokens)
+	er := json.Unmarshal(b, &apnsTokens)
 	if err != nil {
 		panic(er)
 	}
@@ -166,28 +166,28 @@ func LoadAPNSFromStorage() {
 
 //APNS Sandbox
 func AddAPNSSandboxToken(app string, token string) {
-	APNSSandboxMemLock.Lock()
-	defer APNSSandboxMemLock.Unlock()
-	for _, element := range apns_sandbox_tokens[app] {
+	apnsSandboxMemLock.Lock()
+	defer apnsSandboxMemLock.Unlock()
+	for _, element := range apnsSandboxTokens[app] {
 		if token == element {
 			log.Println("Token already registered: " + token + " for the app: " + app)
 			return
 		}
 	}
-	apns_sandbox_tokens[app] = append(apns_sandbox_tokens[app], token)
+	apnsSandboxTokens[app] = append(apnsSandboxTokens[app], token)
 	log.Println("Token added: " + token + " for the app: " + app)
 
-	go persistAPNSSandbox(apns_sandbox_tokens)
+	go persistAPNSSandbox(apnsSandboxTokens)
 }
 
 func RemoveAPNSSandboxToken(app string, token string) {
-	APNSSandboxMemLock.Lock()
-	defer APNSSandboxMemLock.Unlock()
-	for i, element := range apns_sandbox_tokens[app] {
+	apnsSandboxMemLock.Lock()
+	defer apnsSandboxMemLock.Unlock()
+	for i, element := range apnsSandboxTokens[app] {
 		if token == element {
-			apns_sandbox_tokens[app] = append(apns_sandbox_tokens[app][:i], apns_sandbox_tokens[app][i+1:]...)
+			apnsSandboxTokens[app] = append(apnsSandboxTokens[app][:i], apnsSandboxTokens[app][i+1:]...)
 			log.Println("Token removed: " + token)
-			go persistAPNSSandbox(apns_sandbox_tokens)
+			go persistAPNSSandbox(apnsSandboxTokens)
 			return
 		}
 	}
@@ -195,20 +195,20 @@ func RemoveAPNSSandboxToken(app string, token string) {
 }
 
 func GetAPNSSandboxTokens(app string) []string {
-	APNSSandboxMemLock.RLock()
-	defer APNSSandboxMemLock.RUnlock()
-	return apns_sandbox_tokens[app]
+	apnsSandboxMemLock.RLock()
+	defer apnsSandboxMemLock.RUnlock()
+	return apnsSandboxTokens[app]
 }
 
 func GetNbAPNSSandboxTokens(app string) int {
-	APNSSandboxMemLock.RLock()
-	defer APNSSandboxMemLock.RUnlock()
-	return len(apns_sandbox_tokens[app])
+	apnsSandboxMemLock.RLock()
+	defer apnsSandboxMemLock.RUnlock()
+	return len(apnsSandboxTokens[app])
 }
 
 func persistAPNSSandbox(tokens map[string][]string) {
-	APNSSandboxFileLock.Lock()
-	defer APNSSandboxFileLock.Unlock()
+	apnsSandboxFileLock.Lock()
+	defer apnsSandboxFileLock.Unlock()
 	// dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	dir := "./"
 	res, _ := json.Marshal(tokens)
@@ -220,8 +220,8 @@ func persistAPNSSandbox(tokens map[string][]string) {
 }
 
 func LoadAPNSSandboxFromStorage() {
-	APNSSandboxFileLock.RLock()
-	defer APNSSandboxFileLock.RUnlock()
+	apnsSandboxFileLock.RLock()
+	defer apnsSandboxFileLock.RUnlock()
 	// dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
 	dir := "./"
 
@@ -229,7 +229,7 @@ func LoadAPNSSandboxFromStorage() {
 	if err != nil {
 		return
 	}
-	er := json.Unmarshal(b, &apns_sandbox_tokens)
+	er := json.Unmarshal(b, &apnsSandboxTokens)
 	if err != nil {
 		panic(er)
 	}
