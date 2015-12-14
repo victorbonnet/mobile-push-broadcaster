@@ -345,6 +345,7 @@ func sendApns(params map[string]interface{}) {
 	web_logs.APNSLogs("Broadcasting to " + strconv.Itoa(len(tokens)) + " devices")
 	err := client.Broadcast(pushNotifications)
 	if err != nil {
+		log.Println("Unable to broadcast apns: " + err.Error())
 		fmt.Errorf("Error while broadcasting", err)
 	}
 	web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
