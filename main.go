@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/unrolled/render"
+
 	"mobile-push-broadcaster/apns"
 	"mobile-push-broadcaster/dao"
 	"mobile-push-broadcaster/web_logs"
 
 	"github.com/alexjlockwood/gcm"
-	"github.com/codegangsta/martini"
-	"github.com/martini-contrib/auth"
-	"github.com/martini-contrib/render"
 )
 
 type webPageInfo struct {
@@ -61,6 +61,8 @@ var settings struct {
 
 const maxGcmTokens = 1000
 
+var renderer = render.New()
+
 func main() {
 	staticFilesDir := "."
 	if len(os.Args) > 1 {
@@ -76,40 +78,74 @@ func main() {
 	dao.LoadAPNSSandboxFromStorage()
 	log.Println("Tokens loaded")
 
-	m := martini.Classic()
-
-	authenticator := auth.BasicFunc(func(username, password string) bool {
-		return auth.SecureCompare(username, settings.Login) && auth.SecureCompare(password, settings.Password)
+	renderer = render.New(render.Options{
+		Directory: staticFilesDir + "/web",
+		Delims:    render.Delims{"{[{", "}]}"},
 	})
 
-	m.Use(render.Renderer(render.Options{
-		Directory:  staticFilesDir + "/web",
-		Extensions: []string{".tmpl", ".html"},
-		Charset:    "UTF-8",
-		Delims:     render.Delims{"{[{", "}]}"},
-		IndentJSON: false,
-	}))
-	m.Use(martini.Static(staticFilesDir + "/web"))
+	r := mux.NewRouter()
 
-	m.Get("/", authenticator, index)
-	m.Get("/broadcast", authenticator, broadcast)
+	r.HandleFunc("/", BasicAuth(index)).Methods("GET")
+	r.HandleFunc("/broadcast", BasicAuth(broadcast)).Methods("GET")
 
-	// GCM
-	m.Post("/gcm/register", registerGcm)
-	m.Post("/gcm/unregister", unregisterGcm)
+	r.HandleFunc("/gcm/register", registerGcm).Methods("POST")
+	r.HandleFunc("/gcm/unregister", unregisterGcm).Methods("POST")
+	r.HandleFunc("/apns/register", registerApns).Methods("POST")
+	r.HandleFunc("/apns/unregister", unregisterApns).Methods("POST")
+	r.HandleFunc("/apns/register_sandbox", registerApnsSandbox).Methods("POST")
+	r.HandleFunc("/apns/unregister_sandbox", unregisterApnsSandbox).Methods("POST")
+	r.HandleFunc("/sock_gcm", web_logs.SockGCM).Methods("GET")
+	r.HandleFunc("/sock_apns", web_logs.SockAPNS).Methods("GET")
 
-	// APNS
-	m.Post("/apns/register", registerApns)
-	m.Post("/apns/unregister", unregisterApns)
-	m.Post("/apns/register_sandbox", registerApnsSandbox)
-	m.Post("/apns/unregister_sandbox", unregisterApnsSandbox)
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticFilesDir + "/web"))).Methods("GET")
+	http.Handle("/", r)
+	http.ListenAndServe(":"+settings.PORT, r)
+	/*
 
-	// websockets to display logs in the web page
-	m.Get("/sock_gcm", web_logs.SockGCM)
-	m.Get("/sock_apns", web_logs.SockAPNS)
+		m.Use(render.Renderer(render.Options{
+			Directory:  staticFilesDir + "/web",
+			Extensions: []string{".tmpl", ".html"},
+			Charset:    "UTF-8",
+			Delims:     render.Delims{"{[{", "}]}"},
+			IndentJSON: false,
+		}))
+		m.Use(martini.Static(staticFilesDir + "/web"))
 
-	log.Fatal(http.ListenAndServe(":"+settings.PORT, m))
-	m.Run()
+		m.Get("/", authenticator, index)
+		m.Get("/broadcast", authenticator, broadcast)
+
+		// GCM
+		m.Post("/gcm/register", registerGcm)
+		m.Post("/gcm/unregister", unregisterGcm)
+
+		// APNS
+		m.Post("/apns/register", registerApns)
+		m.Post("/apns/unregister", unregisterApns)
+		m.Post("/apns/register_sandbox", registerApnsSandbox)
+		m.Post("/apns/unregister_sandbox", unregisterApnsSandbox)
+
+		// websockets to display logs in the web page
+		m.Get("/sock_gcm", web_logs.SockGCM)
+		m.Get("/sock_apns", web_logs.SockAPNS)
+
+		n := negroni.Classic()
+		n.UseHandler(mux)
+		n.UseHandler(auth.Basic(settings.Login, settings.settings.Password))
+		n.Run(":" + settings.PORT)
+
+	*/
+}
+
+func BasicAuth(pass http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, password, ok := r.BasicAuth()
+		if ok && user == settings.Login && password == settings.Password {
+			pass(w, r)
+			return
+		}
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"Authorization Required\"")
+		http.Error(w, "authorization failed", http.StatusUnauthorized)
+	}
 }
 
 func loadConfig(staticFilesDir string) {
@@ -145,11 +181,11 @@ func getPageInfo() webPageInfo {
 	return webPageInfo
 }
 
-func index(render render.Render) {
-	render.HTML(200, "broadcaster", getPageInfo())
+func index(w http.ResponseWriter, r *http.Request) {
+	renderer.HTML(w, http.StatusOK, "broadcaster", getPageInfo())
 }
 
-func broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {
+func broadcast(w http.ResponseWriter, r *http.Request) {
 	var params = make(map[string]interface{})
 	for k, v := range r.URL.Query() {
 		params[k] = v[0]
@@ -171,77 +207,78 @@ func broadcast(render render.Render, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func registerGcm(r *http.Request) string {
+func registerGcm(w http.ResponseWriter, r *http.Request) {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("RegisterGcm: app or token empty")
-		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
+		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
 	}
 	log.Println("Register GCM token: " + token)
 	dao.AddGCMToken(app, token)
-	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
+
+	renderer.JSON(w, http.StatusOK, map[string]string{"status": "success", "message": "Token saved"})
 }
 
-func unregisterGcm(r *http.Request) string {
+func unregisterGcm(w http.ResponseWriter, r *http.Request) {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("UnregisterGcm: app or token empty")
-		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
+		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
 	}
 	log.Println("Unregister GCM token: " + token)
 	dao.RemoveGCMToken(app, token)
-	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
+	renderer.JSON(w, http.StatusOK, map[string]string{"status": "success", "message": "Token deleted"})
 }
 
-func registerApns(r *http.Request) string {
+func registerApns(w http.ResponseWriter, r *http.Request) {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("RegisterApns: app or token empty")
-		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
+		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
 	}
 	log.Println("Register APNS token: " + token)
 	dao.AddAPNSToken(app, token)
-	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
+	renderer.JSON(w, http.StatusOK, map[string]string{"status": "success", "message": "Token saved"})
 }
 
-func unregisterApns(r *http.Request) string {
+func unregisterApns(w http.ResponseWriter, r *http.Request) {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("UnregisterApns: app or token empty")
-		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
+		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
 	}
 	log.Println("Unregister APNS token: " + token)
 	dao.RemoveAPNSToken(app, token)
-	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
+	renderer.JSON(w, http.StatusOK, map[string]string{"status": "success", "message": "Token deleted"})
 }
 
-func registerApnsSandbox(r *http.Request) string {
+func registerApnsSandbox(w http.ResponseWriter, r *http.Request) {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	log.Println("app: " + app)
 	if token == "" || app == "" {
 		log.Println("RegisterApnsSandbox: app or token empty")
-		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
+		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
 	}
 	log.Println("Register APNSSandbox token: " + token)
 	dao.AddAPNSSandboxToken(app, token)
-	return "{\"status\":\"success\",\"message\":\"Token saved\"}"
+	renderer.JSON(w, http.StatusOK, map[string]string{"status": "success", "message": "Token saved"})
 }
 
-func unregisterApnsSandbox(r *http.Request) string {
+func unregisterApnsSandbox(w http.ResponseWriter, r *http.Request) {
 	app := r.PostFormValue("app")
 	token := r.PostFormValue("token")
 	if token == "" || app == "" {
 		log.Println("UnregisterApnsSandbox: app or token empty")
-		return "{\"status\":\"error\",\"message\":\"app and token params are required\"}"
+		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
 	}
 	log.Println("Unregister APNSSandbox token: " + token)
 	dao.RemoveAPNSSandboxToken(app, token)
-	return "{\"status\":\"success\",\"message\":\"Token deleted\"}"
+	renderer.JSON(w, http.StatusOK, map[string]string{"status": "success", "message": "Token deleted"})
 }
 
 func sendGcm(params map[string]interface{}) {
