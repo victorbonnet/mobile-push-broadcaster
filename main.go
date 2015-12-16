@@ -85,8 +85,8 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/", BasicAuth(index)).Methods("GET")
-	r.HandleFunc("/broadcast", BasicAuth(broadcast)).Methods("GET")
+	r.HandleFunc("/", basicAuth(index)).Methods("GET")
+	r.HandleFunc("/broadcast", basicAuth(broadcast)).Methods("GET")
 
 	r.HandleFunc("/gcm/register", registerGcm).Methods("POST")
 	r.HandleFunc("/gcm/unregister", unregisterGcm).Methods("POST")
@@ -136,7 +136,7 @@ func main() {
 	*/
 }
 
-func BasicAuth(pass http.HandlerFunc) http.HandlerFunc {
+func basicAuth(pass http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, password, ok := r.BasicAuth()
 		if ok && user == settings.Login && password == settings.Password {
