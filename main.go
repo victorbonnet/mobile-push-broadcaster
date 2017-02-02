@@ -373,7 +373,6 @@ func sendApns(params map[string]interface{}) {
     for i := 0; i < len(tokens); i = i + 1 {
         p := apns.NewPayload()
         p.APS.Alert.Body = params["message"].(string)
-        p.APS.Badge.Set(42)
         p.APS.Sound = "bingbong.aiff"
         p.APS.ContentAvailable = 1
         for key, value := range params {
