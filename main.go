@@ -98,40 +98,6 @@ func main() {
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(staticFilesDir + "/web"))).Methods("GET")
 	http.Handle("/", r)
 	http.ListenAndServe(":"+settings.PORT, r)
-	/*
-
-		m.Use(render.Renderer(render.Options{
-			Directory:  staticFilesDir + "/web",
-			Extensions: []string{".tmpl", ".html"},
-			Charset:    "UTF-8",
-			Delims:     render.Delims{"{[{", "}]}"},
-			IndentJSON: false,
-		}))
-		m.Use(martini.Static(staticFilesDir + "/web"))
-
-		m.Get("/", authenticator, index)
-		m.Get("/broadcast", authenticator, broadcast)
-
-		// GCM
-		m.Post("/gcm/register", registerGcm)
-		m.Post("/gcm/unregister", unregisterGcm)
-
-		// APNS
-		m.Post("/apns/register", registerApns)
-		m.Post("/apns/unregister", unregisterApns)
-		m.Post("/apns/register_sandbox", registerApnsSandbox)
-		m.Post("/apns/unregister_sandbox", unregisterApnsSandbox)
-
-		// websockets to display logs in the web page
-		m.Get("/sock_gcm", web_logs.SockGCM)
-		m.Get("/sock_apns", web_logs.SockAPNS)
-
-		n := negroni.Classic()
-		n.UseHandler(mux)
-		n.UseHandler(auth.Basic(settings.Login, settings.settings.Password))
-		n.Run(":" + settings.PORT)
-
-	*/
 }
 
 func basicAuth(pass http.HandlerFunc) http.HandlerFunc {
