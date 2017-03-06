@@ -142,25 +142,42 @@ func RemoveAPNSSandboxToken(app string, token string) {
 	log.Println("No Token to remove: " + token)
 }
 
-
+func CreateBucket() *bolt.Bucket {
+    var bucket bolt.Bucket
+    err := db.Update(func(tx *bolt.Tx) error {
+        b, err := tx.CreateBucketIfNotExists([]byte("tokens"))
+        if err != nil {
+            return fmt.Errorf("create bucket: %s", err)
+        }
+        bucket = *b
+        return nil
+    })
+    if err != nil {
+        return nil
+    }
+    return &bucket
+}
 
 func InitCache() {
 	err := db.View(func(tx *bolt.Tx) error {
         bucket := tx.Bucket([]byte("tokens"))
         if bucket == nil {
-                return fmt.Errorf("Bucket not found!")
+            bucket = CreateBucket();
+            if bucket == nil {
+                fmt.Errorf("Bucket not found!")
+            }
         }
 
         bucket.ForEach(func(k, v []byte) error {
-                res := strings.Split(string(k), "#")
-                if res[0] == "gcm" {
-                        gcmTokens[res[1]] = append(gcmTokens[res[1]], res[2])
-                } else if res[0] == "apns" {
-                        apnsTokens[res[1]] = append(apnsTokens[res[1]], res[2])
-                } else {
-                        apnsSandboxTokens[res[1]] = append(apnsSandboxTokens[res[1]], res[2])
-                }
-                return nil
+            res := strings.Split(string(k), "#")
+            if res[0] == "gcm" {
+                    gcmTokens[res[1]] = append(gcmTokens[res[1]], res[2])
+            } else if res[0] == "apns" {
+                    apnsTokens[res[1]] = append(apnsTokens[res[1]], res[2])
+            } else {
+                    apnsSandboxTokens[res[1]] = append(apnsSandboxTokens[res[1]], res[2])
+            }
+            return nil
         })
 
         return nil
