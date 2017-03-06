@@ -177,6 +177,7 @@ func registerGcm(w http.ResponseWriter, r *http.Request) {
 	if token == "" || app == "" {
 		log.Println("RegisterGcm: app or token empty")
 		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
+		return
 	}
 	log.Println("Register GCM token: " + token)
 	dao.AddGCMToken(app, token)
@@ -190,6 +191,7 @@ func unregisterGcm(w http.ResponseWriter, r *http.Request) {
 	if token == "" || app == "" {
 		log.Println("UnregisterGcm: app or token empty")
 		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
+		return
 	}
 	log.Println("Unregister GCM token: " + token)
 	dao.RemoveGCMToken(app, token)
@@ -202,6 +204,7 @@ func registerApns(w http.ResponseWriter, r *http.Request) {
 	if token == "" || app == "" {
 		log.Println("RegisterApns: app or token empty")
 		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
+		return
 	}
 	log.Println("Register APNS token: " + token)
 	dao.AddAPNSToken(app, token)
@@ -214,6 +217,7 @@ func unregisterApns(w http.ResponseWriter, r *http.Request) {
 	if token == "" || app == "" {
 		log.Println("UnregisterApns: app or token empty")
 		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
+		return
 	}
 	log.Println("Unregister APNS token: " + token)
 	dao.RemoveAPNSToken(app, token)
@@ -227,6 +231,7 @@ func registerApnsSandbox(w http.ResponseWriter, r *http.Request) {
 	if token == "" || app == "" {
 		log.Println("RegisterApnsSandbox: app or token empty")
 		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
+		return
 	}
 	log.Println("Register APNSSandbox token: " + token)
 	dao.AddAPNSSandboxToken(app, token)
@@ -239,6 +244,7 @@ func unregisterApnsSandbox(w http.ResponseWriter, r *http.Request) {
 	if token == "" || app == "" {
 		log.Println("UnregisterApnsSandbox: app or token empty")
 		renderer.JSON(w, http.StatusBadRequest, map[string]string{"status": "error", "message": "app and token params are required"})
+		return
 	}
 	log.Println("Unregister APNSSandbox token: " + token)
 	dao.RemoveAPNSSandboxToken(app, token)
