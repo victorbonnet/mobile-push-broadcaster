@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+
+<head>
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+  <script>
+    var sent = false;
+    function sendNotification(app) {
+      if (sent) return;
+
+      sent = true;
+
+      var json = {}
+      json.app = app;
+      json.GCM = $('#'+app+' #gcm').is(':checked');
+      json.APNS = $('#'+app+' #apns').is(':checked');
+      json.APNSSandbox = false;
+
+      elements = $(app).find('.field');
+      for(var i = 0; i < elements.length; i++){
+        if (elements[i].parentNode.id == "app-"+app) {
+          json[elements[i].id] = elements[i].value;
+        }
+      }
+
+      $.get('/broadcast', json, 
+          function(returnedData){
+              console.log(returnedData);
+      }).fail(function(){
+            console.log("error");
+      });
+    }
+
+    var connection = new WebSocket('ws://{[{ .Server }]}:{[{ .Port }]}/sock_gcm');
+    connection.onmessage = function (message) {
+      console.log('GCM -> ' + message.data);
+      $('#logs').append('GCM -> ' + message.data);
+    };
+
+    var connectionAPNS = new WebSocket('ws://{[{ .Server }]}:{[{ .Port }]}/sock_apns');
+    connectionAPNS.onmessage = function (message) {
+      console.log('APNS -> ' + message.data);
+      $('#logs').append('APNS -> ' + message.data);
+    };
+  </script>
+</head>
+
+<body>
+
+  <form action="" id="send_form">
+    {[{ range .AppInfos }]}          
+      <div id="{[{ .Name }]}">
+          <!-- <input type="radio" name="apps" value="{[{ .Name }]}"> {[{ .Name }]}<br> -->
+          <h4>{[{ .Name }]}</h4>
+          
+          {[{ range .Fields }]}
+            {[{ .Label }]} <input type="text" name="{[{ .Name }]}">
+            <span style="color: #CECECE;font-size: 12px;">{[{ .Tips }]}</span><br/>
+          {[{ end }]}
+
+          <input id="gcm" type="checkbox"> GCM
+          <input id="apns" type="checkbox"> APNS
+
+          <br>
+          <input type="button" value="Send" onclick="sendNotification({[{ .Name }]});" />
+          
+          <br><br><br>
+      </div>
+
+    {[{ end }]}
+  </form>
+
+  <textarea id="logs"></textarea>
+
+</body>
+
+</html>

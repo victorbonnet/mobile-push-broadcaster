@@ -14,8 +14,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/unrolled/render"
 
-	"mobile-push-broadcaster/dao"
-	"mobile-push-broadcaster/web_logs"
+	"./dao"
+	"./web_logs"
 
 	"github.com/alexjlockwood/gcm"
 	"github.com/timehop/apns"
@@ -84,6 +84,7 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", basicAuth(index)).Methods("GET")
+	r.HandleFunc("/new", basicAuth(index2)).Methods("GET")
 	r.HandleFunc("/broadcast", basicAuth(broadcast)).Methods("GET")
 
 	r.HandleFunc("/gcm/register", registerGcm).Methods("POST")
@@ -147,6 +148,10 @@ func getPageInfo() webPageInfo {
 
 func index(w http.ResponseWriter, r *http.Request) {
 	renderer.HTML(w, http.StatusOK, "broadcaster", getPageInfo())
+}
+
+func index2(w http.ResponseWriter, r *http.Request) {
+	renderer.HTML(w, http.StatusOK, "broadcaster2", getPageInfo())
 }
 
 func broadcast(w http.ResponseWriter, r *http.Request) {
