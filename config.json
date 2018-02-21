@@ -36,7 +36,7 @@
             }
         ]
     }, {
-        "name": "App3",
+        "name": "test|hjdk",
         "gcm_api_key": "KEY",
         "fields": [
             {

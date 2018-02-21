@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,6 +30,7 @@ type webPageInfo struct {
 
 type appInfo struct {
 	Name              string
+	NamePath          string
 	AndroidDevices    int
 	IOSDevices        int
 	IOSSandboxDevices int
@@ -137,7 +139,7 @@ func getPageInfo() webPageInfo {
 	var webPageInfo webPageInfo
 	var appInfos []appInfo
 	for _, element := range settings.Apps {
-		appInfo := appInfo{element.Name, dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), dao.GetNbAPNSSandboxTokens(element.Name), element.Fields}
+		appInfo := appInfo{element.Name, strings.Replace(element.Name, "|", "", -1), dao.GetNbGCMTokens(element.Name), dao.GetNbAPNSTokens(element.Name), dao.GetNbAPNSSandboxTokens(element.Name), element.Fields}
 		appInfos = append(appInfos, appInfo)
 	}
 	webPageInfo.Server = settings.Server

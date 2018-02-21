@@ -17,23 +17,25 @@
     <script>
       var visibleApp;
       var sent = false;
-      function sendNotification(app) {
+      function sendNotification(app, appPath) {
         if (sent) return;
 
-        visibleApp = app;
+        visibleAppPath = appPath;
 
         sent = true;
 
         var json = {}
         json.app = app;
-        json.GCM = $('#'+app+' #gcm').is(':checked');
-        json.APNS = $('#'+app+' #apns').is(':checked');
+        json.GCM = $('#'+appPath+' #gcm').is(':checked');
+        json.APNS = $('#'+appPath+' #apns').is(':checked');
         json.APNSSandbox = false;
 
-        elements = $('#'+app+' .field');
+        elements = $('#'+appPath+' .field');
         for(var i = 0; i < elements.length; i++){
           json[elements[i].id] = elements[i].value;
         }
+
+        alert(JSON.stringify(json));
 
         $.get('/broadcast', json, 
             function(returnedData){
@@ -45,19 +47,19 @@
 
       var connection = new WebSocket('ws://{[{ .Server }]}:{[{ .Port }]}/sock_gcm');
       connection.onmessage = function (message) {
-        $("#gcm"+visibleApp).append( "<p>• " + message.data + "</p>" );
+        $("#gcm"+visibleAppPath).append( "<p>• " + message.data + "</p>" );
       };
 
       var connectionAPNS = new WebSocket('ws://{[{ .Server }]}:{[{ .Port }]}/sock_apns');
       connectionAPNS.onmessage = function (message) {
-        $("#apns"+visibleApp).append( "<p>• " + message.data + "</p>" );
+        $("#apns"+visibleAppPath).append( "<p>• " + message.data + "</p>" );
       };
 
       $(window).on('hashchange', function() {
         $(".dynamic-content").each(function(index) {
           $(this).hide();
         });
-        $(window.location.hash).show();
+        $(decodeURIComponent(window.location.hash)).show();
       });
     </script>
   </head>
@@ -79,7 +81,7 @@
               <ul class="nav nav-list">
                 <li class="nav-header">Apps</li>
                 {[{ range .AppInfos }]}
-                  <li><a href="#{[{ .Name }]}">{[{ .Name }]}</a></li>
+                  <li><a href="#{[{ .NamePath }]}">{[{ .Name }]}</a></li>
                 {[{ end }]}                
               </ul>
             </div>
@@ -87,7 +89,7 @@
           <div class="span9">
             <form action="" id="send_form">
               {[{ range .AppInfos }]}          
-                <div id="{[{ .Name }]}" class="dynamic-content">
+                <div id="{[{ .NamePath }]}" class="dynamic-content">
                     <div id="divApp2">
                         <div class="hero-unit">
                             <h1>{[{ .Name }]}</h1>
@@ -119,7 +121,7 @@
                             <div class="row-fluid">
                                 <div class="span11"></div>
                                 <div class="span1">
-                                    <input class="btn btn-primary btn-large" type="button" value="Send" onclick="sendNotification({[{ .Name }]});" />
+                                    <input class="btn btn-primary btn-large" type="button" value="Send" onclick="sendNotification({[{ .Name }]}, {[{ .NamePath }]});" />
                                 </div>
                             </div>
                             
@@ -129,13 +131,13 @@
                             <div class="span6">
                                 <div>
                                     <h2>GCM Logs</h2>
-                                    <div id="gcm{[{ .Name }]}"></div>
+                                    <div id="gcm{[{ .NamePath }]}"></div>
                                 </div>
                             </div>
                             <div class="span6">
                                 <div>
                                     <h2>APNS Logs</h2>
-                                    <div id="apns{[{ .Name }]}"></div>
+                                    <div id="apns{[{ .NamePath }]}"></div>
                                 </div>
                             </div>
                           </div>
