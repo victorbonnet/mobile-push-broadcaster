@@ -14,8 +14,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/unrolled/render"
 
-	"./dao"
-	"./web_logs"
+	"mobile-push-broadcaster/dao"
+	"mobile-push-broadcaster/web_logs"
 
 	"github.com/alexjlockwood/gcm"
 	"github.com/timehop/apns"
@@ -329,61 +329,61 @@ func sendApns(params map[string]interface{}) {
 		return
 	}
 
-    c, err := apns.NewClientWithFiles(apns.ProductionGateway, appSettings.ApnsCert, appSettings.ApnsKey)
-    if err != nil {
-        fmt.Errorf("could not create new client", err.Error())
-        web_logs.APNSLogs("Could not create new client")
-        return
-    }
+	c, err := apns.NewClientWithFiles(apns.ProductionGateway, appSettings.ApnsCert, appSettings.ApnsKey)
+	if err != nil {
+		fmt.Errorf("could not create new client", err.Error())
+		web_logs.APNSLogs("Could not create new client")
+		return
+	}
 
-    go func() {
-        for f := range c.FailedNotifs {
-            fmt.Println("Notif", f.Notif.ID, "failed with", f.Err.Error())
-            web_logs.APNSLogs("Error with token " + f.Notif.DeviceToken + ", removed from database")
-            dao.RemoveAPNSToken(app, f.Notif.DeviceToken)
-        }
-    }()
+	go func() {
+		for f := range c.FailedNotifs {
+			fmt.Println("Notif", f.Notif.ID, "failed with", f.Err.Error())
+			web_logs.APNSLogs("Error with token " + f.Notif.DeviceToken + ", removed from database")
+			dao.RemoveAPNSToken(app, f.Notif.DeviceToken)
+		}
+	}()
 
-    tokens := dao.GetAPNSTokens(params["app"].(string))
+	tokens := dao.GetAPNSTokens(params["app"].(string))
 
-    web_logs.APNSLogs("Broadcasting to " + strconv.Itoa(len(tokens)) + " devices")
-    for i := 0; i < len(tokens); i = i + 1 {
-        p := apns.NewPayload()
-        p.APS.Alert.Body = params["message"].(string)
-        p.APS.Sound = "bingbong.aiff"
-        p.APS.ContentAvailable = 1
-        for key, value := range params {
-            p.SetCustomValue(key, value)
-        }
+	web_logs.APNSLogs("Broadcasting to " + strconv.Itoa(len(tokens)) + " devices")
+	for i := 0; i < len(tokens); i = i + 1 {
+		p := apns.NewPayload()
+		p.APS.Alert.Body = params["message"].(string)
+		p.APS.Sound = "bingbong.aiff"
+		p.APS.ContentAvailable = 1
+		for key, value := range params {
+			p.SetCustomValue(key, value)
+		}
 
-        m := apns.NewNotification()
-        m.Payload = p
-        m.DeviceToken = tokens[i]
-        m.Priority = apns.PriorityImmediate
-        m.Identifier = 25167       // Integer for APNS
-        m.ID = "user_id:timestamp" // ID not sent to Apple – to identify error notifications
+		m := apns.NewNotification()
+		m.Payload = p
+		m.DeviceToken = tokens[i]
+		m.Priority = apns.PriorityImmediate
+		m.Identifier = 25167       // Integer for APNS
+		m.ID = "user_id:timestamp" // ID not sent to Apple – to identify error notifications
 
-        c.Send(m)
-    }
-    web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
-    
+		c.Send(m)
+	}
+	web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
+
 }
 
 func apnsFeedback(params map[string]interface{}) {
-    app := params["app"].(string)
-    appSettings, appError := getAppConfig(app)
-    if appError != nil {
-        return
-    }
+	app := params["app"].(string)
+	appSettings, appError := getAppConfig(app)
+	if appError != nil {
+		return
+	}
 
-    f, err := apns.NewFeedback(apns.ProductionFeedbackGateway, appSettings.ApnsCert, appSettings.ApnsKey)
-    if err != nil {
-        log.Fatal("Could not create feedback", err.Error())
-    }
+	f, err := apns.NewFeedback(apns.ProductionFeedbackGateway, appSettings.ApnsCert, appSettings.ApnsKey)
+	if err != nil {
+		log.Fatal("Could not create feedback", err.Error())
+	}
 
-    for ft := range f.Receive() {
-        fmt.Println("Feedback for token:", ft.DeviceToken)
-    }
+	for ft := range f.Receive() {
+		fmt.Println("Feedback for token:", ft.DeviceToken)
+	}
 }
 
 func sendApnsSandbox(params map[string]interface{}) {
@@ -393,60 +393,60 @@ func sendApnsSandbox(params map[string]interface{}) {
 		return
 	}
 
-    c, err := apns.NewClientWithFiles(apns.SandboxGateway, appSettings.ApnsCertSandbox, appSettings.ApnsKeySandbox)
-    if err != nil {
-        fmt.Errorf("could not create new client", err.Error())
-        web_logs.APNSLogs("Could not create new client")
-        return
-    }
+	c, err := apns.NewClientWithFiles(apns.SandboxGateway, appSettings.ApnsCertSandbox, appSettings.ApnsKeySandbox)
+	if err != nil {
+		fmt.Errorf("could not create new client", err.Error())
+		web_logs.APNSLogs("Could not create new client")
+		return
+	}
 
-    //todo reuse code from sendApns()
+	//todo reuse code from sendApns()
 
-    go func() {
-        for f := range c.FailedNotifs {
-            fmt.Println("Notif", f.Notif.ID, "failed with", f.Err.Error())
-            web_logs.APNSLogs("Error with token " + f.Notif.DeviceToken + ", removed from database")
-            dao.RemoveAPNSToken(app, f.Notif.DeviceToken)
-        }
-    }()
+	go func() {
+		for f := range c.FailedNotifs {
+			fmt.Println("Notif", f.Notif.ID, "failed with", f.Err.Error())
+			web_logs.APNSLogs("Error with token " + f.Notif.DeviceToken + ", removed from database")
+			dao.RemoveAPNSToken(app, f.Notif.DeviceToken)
+		}
+	}()
 
-    tokens := dao.GetAPNSTokens(params["app"].(string))
+	tokens := dao.GetAPNSTokens(params["app"].(string))
 
-    web_logs.APNSLogs("Broadcasting to " + strconv.Itoa(len(tokens)) + " devices")
-    for i := 0; i < len(tokens); i = i + 1 {
-        p := apns.NewPayload()
-        p.APS.Alert.Body = params["message"].(string)
-        p.APS.Sound = "bingbong.aiff"
-        p.APS.ContentAvailable = 1
-        for key, value := range params {
-            p.SetCustomValue(key, value)
-        }
+	web_logs.APNSLogs("Broadcasting to " + strconv.Itoa(len(tokens)) + " devices")
+	for i := 0; i < len(tokens); i = i + 1 {
+		p := apns.NewPayload()
+		p.APS.Alert.Body = params["message"].(string)
+		p.APS.Sound = "bingbong.aiff"
+		p.APS.ContentAvailable = 1
+		for key, value := range params {
+			p.SetCustomValue(key, value)
+		}
 
-        m := apns.NewNotification()
-        m.Payload = p
-        m.DeviceToken = tokens[i]
-        m.Priority = apns.PriorityImmediate
-        m.Identifier = 25167       // Integer for APNS
-        m.ID = "user_id:timestamp" // ID not sent to Apple – to identify error notifications
+		m := apns.NewNotification()
+		m.Payload = p
+		m.DeviceToken = tokens[i]
+		m.Priority = apns.PriorityImmediate
+		m.Identifier = 25167       // Integer for APNS
+		m.ID = "user_id:timestamp" // ID not sent to Apple – to identify error notifications
 
-        c.Send(m)
-    }
-    web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
+		c.Send(m)
+	}
+	web_logs.APNSLogs("Sent to " + strconv.Itoa(len(tokens)) + " devices")
 }
 
 func apnsFeedbackSandbox(params map[string]interface{}) {
 	app := params["app"].(string)
-    appSettings, appError := getAppConfig(app)
-    if appError != nil {
-        return
-    }
+	appSettings, appError := getAppConfig(app)
+	if appError != nil {
+		return
+	}
 
-    f, err := apns.NewFeedback(apns.SandboxFeedbackGateway, appSettings.ApnsCert, appSettings.ApnsKey)
-    if err != nil {
-        log.Fatal("Could not create feedback", err.Error())
-    }
+	f, err := apns.NewFeedback(apns.SandboxFeedbackGateway, appSettings.ApnsCert, appSettings.ApnsKey)
+	if err != nil {
+		log.Fatal("Could not create feedback", err.Error())
+	}
 
-    for ft := range f.Receive() {
-        fmt.Println("Feedback for token:", ft.DeviceToken)
-    }
+	for ft := range f.Receive() {
+		fmt.Println("Feedback for token:", ft.DeviceToken)
+	}
 }
