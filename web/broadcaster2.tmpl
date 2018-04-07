@@ -28,7 +28,7 @@
         json.app = app;
         json.GCM = $('#'+appPath+' #gcm').is(':checked');
         json.APNS = $('#'+appPath+' #apns').is(':checked');
-        json.APNSSandbox = false;
+        json.APNSSandbox = $('#'+appPath+' #apns-sandbox').is(':checked');
 
         elements = $('#'+appPath+' .field');
         for(var i = 0; i < elements.length; i++){
@@ -112,6 +112,9 @@
                               </div>
                               <div class="span2">
                                 <input id="apns" type="checkbox"> APNS ({[{ .IOSDevices }]})
+                              </div>
+                              <div class="span2">
+                                <input id="apns-sandbox" type="checkbox"> APNS Sandbox ({[{ .IOSSandboxDevices }]})
                               </div>
                           </div>
                   
