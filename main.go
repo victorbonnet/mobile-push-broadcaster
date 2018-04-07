@@ -412,7 +412,7 @@ func sendApnsSandbox(params map[string]interface{}) {
 		}
 	}()
 
-	tokens := dao.GetAPNSTokens(params["app"].(string))
+	tokens := dao.GetAPNSSandboxTokens(params["app"].(string))
 
 	web_logs.APNSLogs("Broadcasting to " + strconv.Itoa(len(tokens)) + " devices")
 	for i := 0; i < len(tokens); i = i + 1 {
